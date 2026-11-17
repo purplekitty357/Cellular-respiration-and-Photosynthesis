@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- build:head -->
+<title>탄소 추적 실험실</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<!-- /build:head -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- build:body -->
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>탄소 추적 실험실</h1>
+      <p>세포호흡과 광합성에서 탄소 원자 하나하나가 어디로 가는지, 방사성 동위원소 추적법처럼 색으로 따라가 보는 시뮬레이터</p>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-respiration" data-tab="respiration">세포호흡</button>
+      <button class="tab" role="tab" id="tab-photosynthesis" data-tab="photosynthesis">광합성</button>
+    </nav>
+    <div class="global-opts">
+      <label class="opt"><input type="checkbox" id="opt-colorall"> 원래 있던 탄소도 색으로 구별</label>
+      <label class="opt">속도 <input type="range" id="opt-speed" min="0.5" max="3" step="0.25" value="1"></label>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="sim" id="sim-respiration" data-sim="R" aria-labelledby="tab-respiration">
+    <div class="sim-head">
+      <h2>세포호흡</h2>
+      <p class="eq">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O → 6CO<sub>2</sub> + 12H<sub>2</sub>O + 에너지(ATP)</p>
+    </div>
+    <div class="sim-body">
+      <aside class="controls">
+        <div class="ctl-row">
+          <button class="btn primary" data-auto>▶ 자동 진행</button>
+          <button class="btn" data-reset>초기화</button>
+        </div>
+        <div class="ctl-row switches">
+          <label class="switch"><input type="checkbox" id="resp-o2" checked><span>산소(O<sub>2</sub>) 있음</span></label>
+          <label class="opt" id="resp-ferm-wrap">발효 종류
+            <select id="resp-ferm">
+              <option value="alcohol">알코올 발효 (효모)</option>
+              <option value="lactate">젖산 발효 (근육)</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions" data-actions></div>
+      </aside>
+      <div class="stage" data-stage></div>
+      <aside class="panel" data-panel></aside>
+    </div>
+  </section>
+
+  <section class="sim" id="sim-photosynthesis" data-sim="P" aria-labelledby="tab-photosynthesis" hidden>
+    <div class="sim-head">
+      <h2>광합성</h2>
+      <p class="eq">6CO<sub>2</sub> + 12H<sub>2</sub>O <span class="sun">빛</span>→ C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O</p>
+    </div>
+    <div class="sim-body">
+      <aside class="controls">
+        <div class="ctl-row">
+          <button class="btn primary" data-auto>▶ 자동 진행</button>
+          <button class="btn" data-reset>초기화</button>
+        </div>
+        <div class="ctl-row switches">
+          <label class="switch"><input type="checkbox" id="photo-light" checked><span>빛 비추기</span></label>
+          <label class="opt">빛의 세기 <input type="range" id="photo-int" min="1" max="3" step="1" value="2"></label>
+        </div>
+        <div class="actions" data-actions></div>
+      </aside>
+      <div class="stage" data-stage></div>
+      <aside class="panel" data-panel></aside>
+    </div>
+  </section>
+</main>
+
+<div id="tip" role="tooltip" hidden></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<!-- /build:body -->
+<script src="js/app.js"></script>
+</body>
+</html>
