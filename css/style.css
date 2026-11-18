@@ -240,3 +240,17 @@ main { max-width: 1480px; margin: 0 auto; padding-block: 6px 40px; }
 #tip { position: fixed; z-index: 50; max-width: 300px; background: var(--ink); color: var(--bg); padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.45; pointer-events: none; box-shadow: 0 6px 20px rgb(0 0 0 / .2); }
 #tip b { font-family: var(--font-mono); }
 #toast { position: fixed; z-index: 60; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 13px; max-width: calc(100% - 32px); }
+
+/* ── 이동 애니메이션 ── */
+#fx { position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: visible; pointer-events: none; z-index: 40; }
+#fx .ghost { position: absolute; margin: 0; opacity: .9; border-style: dashed; background: color-mix(in srgb, var(--surface) 75%, transparent); }
+#fx .atom.fly { position: absolute; margin: 0; z-index: 2; box-shadow: 0 3px 10px rgb(0 0 0 / .3), inset 0 -2px 0 rgb(0 0 0 / .18); }
+#fx .trail { position: absolute; overflow: visible; }
+#fx .trail path { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; opacity: .75; }
+
+.now { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 6px); z-index: 30; display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; box-shadow: 0 4px 14px rgb(0 0 0 / .06); }
+.now-t { font: 700 13.5px var(--font-display); }
+.now-d { font-size: 12px; color: var(--muted); }
+.now-d .dot { width: 10px; height: 10px; vertical-align: -1px; }
+#fx .hubtag { position: absolute; transform: translateX(-50%); white-space: nowrap; background: var(--ink); color: var(--bg); font: 700 11.5px var(--font-body); padding: 3px 9px; border-radius: 999px; box-shadow: 0 4px 12px rgb(0 0 0 / .2); }
+#fx .hubring { position: absolute; border-radius: 16px; border: 2px dashed var(--muted); background: color-mix(in srgb, var(--surface) 55%, transparent); }
