@@ -1,7 +1,7 @@
 """index.html + css + js 를 하나의 HTML 조각으로 합칩니다 (단일 파일 배포·미리보기용).
-사용법: python3 tools/build-single.py <출력 경로>"""
+사용법: python3 legacy/build-single.py <출력 경로>"""
 import pathlib, re, sys
-root = pathlib.Path(__file__).resolve().parent.parent
+root = pathlib.Path(__file__).resolve().parent
 html = (root / "index.html").read_text(encoding="utf-8")
 head = re.search(r"<!-- build:head -->(.*?)<!-- /build:head -->", html, re.S).group(1)
 body = re.search(r"<!-- build:body -->(.*?)<!-- /build:body -->", html, re.S).group(1)
