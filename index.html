@@ -13,7 +13,7 @@
   --cyto: #eef3f7; --outside: #f7f4ec; --membrane: #9a8a6a; --mito: #c0603a; --mito-fill: #fbefe8; --ims: #f6dccd;
   --station: #ffffff; --station-line: #7d8c87; --bond: #3b4844; --gray-atom: #b3bcb8; --phos: #8b6fc0;
   --accent: #1f5fbf; --warn: #c0392b; --good: #1d7a46;
-  --photo: #2c8a4b; --stroma: #eaf5ec; --lumen: #cfe9d4; --air: #eef4f8; --e: #f2c200; --h: #d1495b; --s1: #0072B2; --s2: #D55E00; --heat: #e4572e;
+  --photo: #2c8a4b; --stroma: #d9eecf; --lumen: #bfe2c4; --granum: #6fbf7c; --granum-line: #2f7a43; --air: #eef4f8; --e: #f2c200; --h: #d1495b; --s1: #0072B2; --s2: #D55E00; --heat: #e4572e;
   --font: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Nanum Gothic", system-ui, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -23,7 +23,7 @@
     --cyto: #16202a; --outside: #1d1b16; --membrane: #b9a57c; --mito: #e58a62; --mito-fill: #2a1d17; --ims: #3a271e;
     --station: #212b28; --station-line: #8a9a95; --bond: #c9d4d0; --gray-atom: #5d6864; --phos: #a98ce0;
     --accent: #7fb0ff; --warn: #ff8a7a; --good: #5fd08f; color-scheme: dark;
-    --photo: #5cc27e; --stroma: #15241a; --lumen: #1f3a26; --air: #141c22; --e: #f2c200; --h: #e8687a; --s1: #3a9ad9; --s2: #d9622a; --heat: #ff7a50;
+    --photo: #5cc27e; --stroma: #163020; --lumen: #22462d; --granum: #2f6e3e; --granum-line: #6fcf89; --air: #141c22; --e: #f2c200; --h: #e8687a; --s1: #3a9ad9; --s2: #d9622a; --heat: #ff7a50;
 
   }
 }
@@ -32,7 +32,7 @@
   --cyto: #16202a; --outside: #1d1b16; --membrane: #b9a57c; --mito: #e58a62; --mito-fill: #2a1d17; --ims: #3a271e;
   --station: #212b28; --station-line: #8a9a95; --bond: #c9d4d0; --gray-atom: #5d6864; --phos: #a98ce0;
   --accent: #7fb0ff; --warn: #ff8a7a; --good: #5fd08f; color-scheme: dark;
-    --photo: #5cc27e; --stroma: #15241a; --lumen: #1f3a26; --air: #141c22; --e: #f2c200; --h: #e8687a; --s1: #3a9ad9; --s2: #d9622a; --heat: #ff7a50;
+    --photo: #5cc27e; --stroma: #163020; --lumen: #22462d; --granum: #2f6e3e; --granum-line: #6fcf89; --air: #141c22; --e: #f2c200; --h: #e8687a; --s1: #3a9ad9; --s2: #d9622a; --heat: #ff7a50;
 
 }
 * { box-sizing: border-box; }
@@ -177,7 +177,7 @@ table.cmp th, table.cmp td { text-align: left; white-space: normal; }
       <div class="group">
         <span class="lbl">포도당 공급</span>
         <div class="row"><button class="btn" id="btn-glc">포도당 1개 넣기</button></div>
-        <label class="row field"><input type="checkbox" id="supply-on"> 계속 공급</label>
+        <label class="row field"><input type="checkbox" id="supply-on" checked> 계속 공급</label>
         <label class="field">공급량 <input type="range" id="supply-rate" min="1" max="6" step="1" value="2"> <b id="supply-v">10초에 2개</b></label>
       </div>
       <div class="group" data-for="resp">
@@ -459,10 +459,10 @@ const CO2_MAX = 38;
 const CRING = { x: 640, y: 262, r: 140 };
 const PHOTO = {
   cell: { x: 110, y: 12, w: 1158, h: 696, r: 40 },
-  chloro: { x: 150, y: 34, w: 1090, h: 650, r: 190 },
-  thy: { x: 205, y: 512, w: 960, h: 132 },          // 틸라코이드 (안쪽 = 틸라코이드 내부)
+  chloro: { x: 150, y: 34, w: 1090, h: 650, r: 230 },
+  thy: { x: 255, y: 512, w: 760, h: 132 },          // 틸라코이드 (안쪽 = 틸라코이드 내부)
   mem: 520,
-  lumen: { x: 230, y: 540, w: 900, h: 90 },
+  lumen: { x: 275, y: 540, w: 720, h: 90 },
   air: { x: 0, w: 100 },
   comp: { PSII: 300, PQ: 378, b6f: 448, PC: 515, PSI: 592, Fd: 655, FNR: 720, syn: 935 },
   sites: {
@@ -476,7 +476,7 @@ const PHOTO = {
   const F = at(180), R = at(-60), G = at(60);
   PHOTO.sites.fix = { x: F.x, y: F.y, q: { CO2: [-88, 0], RuBP: [0, 58] }, qs: 34, out: [unit(F, R, 58), unit(F, R, 58).map((v, i) => v + (i ? 34 : -6))], ring: true, radial: [-1, 0] };
   PHOTO.sites.red = { x: R.x, y: R.y, q: unit(R, F, 56), qs: 40, out: [[60, 30]], ring: true, radial: [0.5, -0.87] };
-  PHOTO.sites.regen = { x: G.x, y: G.y, q: unit(G, R, 50), qs: 34, out: [unit(G, F, 60), unit(G, F, 60).map((v, i) => v + (i ? 36 : 16)), unit(G, F, 60).map((v, i) => v + (i ? -36 : -16))], ring: true, radial: [0.5, 0.87] };
+  PHOTO.sites.regen = { x: G.x, y: G.y, q: [44, -26], qs: 30, out: [unit(G, F, 60), unit(G, F, 60).map((v, i) => v + (i ? 36 : 16)), unit(G, F, 60).map((v, i) => v + (i ? -36 : -16))], ring: true, radial: [0.5, 0.87] };
 })();
 
 /* 탄소 색: Okabe–Ito 색맹 안전 팔레트 */
@@ -614,7 +614,7 @@ const ctx = canvas.getContext('2d');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
 const T_FOCUS = 0.45, T_MOVE = 1.35, T_SETTLE = 0.35;
-const ui = { paused: false, speed: 1, supply: false, supplyRate: 2, atpUse: 2.5, o2: 100, basis: 'new', ferment: 'lactic',
+const ui = { paused: false, speed: 1, supply: true, supplyRate: 2, atpUse: 2.5, o2: 100, basis: 'new', ferment: 'lactic',
   labels: new Set([1, 2, 3, 4, 5, 6]), numbering: 'origin',
   inh: { etc: false, etcKind: 'rot', etcC: 100, oligo: false, oligoC: 100, dnp: false, dnpC: 100 },
   lightOn: true, light: 80, white: true, lambda: 680, co2: 60, cyclic: true };
@@ -622,7 +622,7 @@ let theme = {}, FONT = 'sans-serif';
 function readTheme() {
   const cs = getComputedStyle(document.documentElement);
   ['bg', 'surface', 'surface-2', 'ink', 'muted', 'line', 'cyto', 'outside', 'membrane', 'mito', 'mito-fill', 'ims', 'station', 'station-line', 'bond', 'gray-atom', 'phos', 'accent', 'warn',
-    'photo', 'stroma', 'lumen', 'air', 'e', 'h', 's1', 's2', 'heat']
+    'photo', 'stroma', 'lumen', 'granum', 'granum-line', 'air', 'e', 'h', 's1', 's2', 'heat']
     .forEach(k => { theme[k] = cs.getPropertyValue('--' + k).trim(); });
   FONT = getComputedStyle(document.body).fontFamily;
   bgCache = null;
@@ -1120,8 +1120,22 @@ function drawCellBackground(c) {
   txt(c, '젖산', CELL.parks.LAC.x + 72, CELL.parks.LAC.y - 30, 12, 600, theme.muted);
   txt(c, '에탄올', CELL.parks.ETOH.x + 72, CELL.parks.ETOH.y - 26, 12, 600, theme.muted);
   // 미토콘드리아: 외막 · 막사이 공간 · 내막 · 기질
-  rr(c, mt.x, mt.y, mt.w, mt.h, mt.r); c.fillStyle = theme.ims; c.fill(); c.lineWidth = 3; c.strokeStyle = theme.mito; c.stroke();
-  rr(c, inn.x, inn.y, inn.w, inn.h, [mt.r - 16, mt.r - 16, 10, 10]); c.fillStyle = theme['mito-fill']; c.fill(); c.lineWidth = 3; c.stroke();
+  rr(c, mt.x, mt.y, mt.w, mt.h, mt.r); c.fillStyle = theme.ims; c.fill(); c.lineWidth = 4; c.strokeStyle = theme.mito; c.stroke();
+  rr(c, mt.x + 3, mt.y + 3, mt.w - 6, mt.h - 6, mt.r - 3); c.lineWidth = 1; c.stroke();            // 외막(인지질 이중층)
+  const innerPath = () => rr(c, inn.x, inn.y, inn.w, inn.h, [mt.r - 16, mt.r - 16, 10, 10]);
+  innerPath(); c.fillStyle = theme['mito-fill']; c.fill(); c.lineWidth = 3; c.stroke();
+  // 크리스타: 내막이 기질 쪽으로 접혀 들어간 주름 (안쪽은 막사이 공간과 이어짐)
+  c.save(); c.beginPath(); c.rect(inn.x - 2, inn.y - 2, inn.w + 4, inn.h + 4); c.clip();
+  const crista = (x, y, w, h) => {
+    const r = Math.min(w, h) / 2;
+    rr(c, x, y, w, h, r); c.fillStyle = theme.ims; c.fill(); c.lineWidth = 3; c.strokeStyle = theme.mito; c.stroke();
+    rr(c, x + 4, y + 4, w - 8, h - 8, Math.max(2, r - 4)); c.lineWidth = 1; c.globalAlpha = 0.6; c.stroke(); c.globalAlpha = 1;
+  };
+  const LX = inn.x - 6, RX = inn.x + inn.w + 6, TY = inn.y - 6;
+  crista(LX, 160, 84, 22); crista(LX, 330, 64, 22); crista(LX, 470, 92, 22);
+  crista(RX - 76, 186, 76, 22); crista(RX - 64, 300, 64, 20); crista(RX - 92, 470, 92, 22);
+  crista(1000, TY, 22, 74); crista(1060, TY, 22, 50);
+  c.restore();
   txt(c, '미토콘드리아', mt.x + mt.w / 2, mt.y - 14, 14, 700, theme.mito);
   txt(c, '외막', mt.x + 36, mt.y + 6, 11, 600, theme.mito, 'left');
   txt(c, '기질', inn.x + 26, inn.y + 30, 13, 700, theme.mito, 'left');
@@ -1146,14 +1160,27 @@ function drawPhotoBackground(c) {
   rr(c, L.cell.x, L.cell.y, L.cell.w, L.cell.h, L.cell.r); c.fillStyle = theme.cyto; c.fill(); c.lineWidth = 3; c.strokeStyle = theme.membrane; c.stroke();
   txt(c, '공기 (기공)', 50, 22, 13, 700, theme.muted);
   txt(c, 'CO₂ 들어옴', 50, 200, 12, 600, theme.muted); txt(c, 'O₂ 나감', 50, 690, 12, 600, theme.muted);
-  rr(c, ch.x, ch.y, ch.w, ch.h, ch.r); c.fillStyle = theme.stroma; c.fill(); c.lineWidth = 3; c.strokeStyle = theme.photo; c.stroke();
-  rr(c, ch.x + 7, ch.y + 7, ch.w - 14, ch.h - 14, ch.r - 6); c.lineWidth = 1.4; c.stroke();
-  txt(c, '엽록체', ch.x + ch.w / 2, ch.y + 22, 14, 700, theme.photo);
-  txt(c, '스트로마 (캘빈 회로)', ch.x + 70, ch.y + 110, 13, 700, theme.photo, 'left');
+  rr(c, ch.x, ch.y, ch.w, ch.h, ch.r); c.fillStyle = theme.stroma; c.fill(); c.lineWidth = 3.5; c.strokeStyle = theme.photo; c.stroke();
+  rr(c, ch.x + 8, ch.y + 8, ch.w - 16, ch.h - 16, ch.r - 8); c.lineWidth = 2; c.stroke();            // 외막 · 내막 (이중막)
+  txt(c, '엽록체', ch.x + ch.w / 2, ch.y + 24, 14, 800, theme.photo);
+  txt(c, '스트로마', ch.x + 120, ch.y + 64, 13, 700, theme.photo, 'left');
+  // 그라나: 틸라코이드 원반이 동전처럼 쌓인 것, 스트로마 라멜라로 서로 이어짐
+  const disc = (cx, cy, w) => { rr(c, cx - w / 2, cy - 7, w, 14, 7); c.fillStyle = theme.granum; c.fill(); c.lineWidth = 1.6; c.strokeStyle = theme['granum-line']; c.stroke(); };
+  const granum = (cx, cy, n, w) => { for (let i = 0; i < n; i++) disc(cx, cy - i * 11, w - (i % 2) * 4); return { x: cx, y: cy - (n - 1) * 5.5, top: cy - (n - 1) * 11, bot: cy, w }; };
+  const lam = (a, b, ya, yb) => { c.beginPath(); c.moveTo(a.x + a.w / 2 - 6, ya); c.bezierCurveTo((a.x + b.x) / 2, ya, (a.x + b.x) / 2, yb, b.x - b.w / 2 + 6, yb); c.lineWidth = 5; c.strokeStyle = theme['granum-line']; c.globalAlpha = 0.55; c.stroke(); c.globalAlpha = 1; };
+  const G = [[290, 215, 7, 92], [330, 460, 6, 84], [880, 150, 5, 80], [895, 420, 6, 86], [1150, 300, 4, 60]];
+  const gs = G.map(([x, y, n, w]) => ({ x, y: y - (n - 1) * 5.5, top: y - (n - 1) * 11, bot: y, w }));
+  lam(gs[0], gs[2], gs[0].y, gs[2].y); lam(gs[1], gs[3], gs[1].y, gs[3].y); lam(gs[2], gs[4], gs[2].y + 6, gs[4].y); lam(gs[3], gs[4], gs[3].y, gs[4].y + 8);
+  c.beginPath(); c.moveTo(gs[0].x, gs[0].bot + 6); c.lineTo(gs[1].x, gs[1].top - 6); c.lineWidth = 5; c.strokeStyle = theme['granum-line']; c.globalAlpha = 0.55; c.stroke(); c.globalAlpha = 1;
+  G.forEach(([x, y, n, w]) => granum(x, y, n, w));
+  txt(c, '그라나 (틸라코이드가 쌓인 것)', gs[0].x, gs[0].top - 22, 12, 700, theme.photo);
+  // 아래: 그라나 하나를 확대한 틸라코이드 (막 단백질이 보이게)
+  [[th.x + 46, th.y + th.h + 14, th.w - 92], [th.x + 22, th.y + th.h + 1, th.w - 44]].forEach(([x, y, w]) => { rr(c, x, y, w, 14, 7); c.fillStyle = theme.granum; c.fill(); c.lineWidth = 1.6; c.strokeStyle = theme['granum-line']; c.stroke(); });
+  dashed(c, () => { c.beginPath(); c.moveTo(gs[1].x - 40, gs[1].bot + 8); c.lineTo(th.x + 40, th.y - 2); c.moveTo(gs[1].x + 40, gs[1].bot + 8); c.lineTo(th.x + th.w - 40, th.y - 2); c.stroke(); }, theme['granum-line'], 0.5, 1.5);
   rr(c, th.x, th.y, th.w, th.h, 40); c.fillStyle = theme.lumen; c.fill(); c.lineWidth = 3; c.strokeStyle = theme.photo; c.stroke();
   txt(c, '틸라코이드 내부 (H⁺가 쌓이는 곳)', th.x + th.w / 2, th.y + th.h - 16, 12, 700, theme.photo);
   c.fillStyle = theme.photo; c.globalAlpha = 0.25; c.fillRect(th.x + 30, L.mem - 8, th.w - 60, 16); c.globalAlpha = 1;
-  txt(c, '틸라코이드 막', th.x + 34, L.mem - 22, 11, 700, theme.photo, 'left');
+  txt(c, '틸라코이드 막 (확대)', th.x + 34, L.mem - 22, 11, 700, theme.photo, 'left');
   const box = (x, w, h, label, dy = 0) => { rr(c, x - w / 2, L.mem - h / 2 + dy, w, h, 8); c.fillStyle = theme.surface; c.fill(); c.lineWidth = 1.8; c.strokeStyle = theme.photo; c.stroke(); txt(c, label, x, L.mem + dy, 11.5, 800, theme.ink); };
   box(C.PSII, 56, 50, '광계 Ⅱ'); box(C.b6f, 46, 44, 'b₆f'); box(C.PSI, 56, 50, '광계 Ⅰ');
   c.beginPath(); c.arc(C.PQ, L.mem, 11, 0, Math.PI * 2); c.fillStyle = theme.surface; c.fill(); c.strokeStyle = theme.photo; c.lineWidth = 1.5; c.stroke(); txt(c, 'PQ', C.PQ, L.mem, 9.5, 800, theme.ink);
