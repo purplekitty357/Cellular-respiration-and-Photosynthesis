@@ -59,7 +59,7 @@ input[type="range"] { accent-color: var(--accent); width: 120px; }
 .status { margin-left: auto; font-size: 12.5px; color: var(--muted); }
 .status.warn { color: var(--warn); font-weight: 700; }
 
-.grid { max-width: 1600px; margin: 0 auto; display: grid; gap: 12px; grid-template-columns: 250px minmax(0, 1fr) 230px; align-items: start; }
+.grid { max-width: 1600px; margin: 0 auto; display: grid; gap: 12px; grid-template-columns: 230px minmax(0, 1fr) 210px; align-items: start; }
 @media (max-width: 1180px) { .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .stage { grid-column: 1 / -1; grid-row: 1; } }
 @media (max-width: 640px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
@@ -121,6 +121,9 @@ summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 
 #tip { position: fixed; z-index: 50; max-width: 320px; background: var(--ink); color: var(--bg); padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.45; pointer-events: none; box-shadow: 0 6px 20px rgb(0 0 0 / .25); }
 #toast { position: fixed; z-index: 60; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 13px; max-width: calc(100% - 32px); }
+.sel { padding: 4px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); max-width: 100%; }
+.fates { max-height: 260px; overflow-y: auto; }
+.fates td, .fates th { text-align: left; }
 </style>
 <!-- /build:head -->
 </head>
@@ -129,7 +132,7 @@ summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 <header>
   <div>
     <h1>탄소 추적 시뮬레이터</h1>
-    <div class="sub">¹⁴C 표지처럼 탄소 원자 하나하나를 색으로 따라가는 세포호흡 · 발효 · 광합성 실험실</div>
+    <div class="sub">¹⁴C 표지처럼 탄소 원자 하나하나를 색으로 따라가는 세포호흡 · 발효 · 광합성 실험실 (세포와 물질대사)</div>
   </div>
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" id="tab-resp">세포호흡</button>
@@ -155,14 +158,14 @@ summary { cursor: pointer; color: var(--accent); font-weight: 600; }
         <label class="row field"><input type="checkbox" id="supply-on"> 계속 공급</label>
         <label class="field">공급량 <input type="range" id="supply-rate" min="1" max="6" step="1" value="2"> <b id="supply-v">10초에 2개</b></label>
       </div>
-      <div class="group disabled-note">
+      <div class="group">
         <span class="lbl">O₂ 농도</span>
-        <label class="field"><input type="range" id="o2" min="0" max="100" value="100" disabled> <b>100%</b></label>
-        <span class="note">미토콘드리아 단계(3·4단계)에서 작동해요.</span>
+        <label class="field"><input type="range" id="o2" min="0" max="100" step="5" value="100"> <b id="o2-v">100%</b></label>
+        <span class="note">O₂가 없으면 전자 전달계가 멈추고 NADH가 쌓여요. NAD⁺가 바닥나면 해당과정과 TCA 회로도 멈춰요.</span>
       </div>
       <div class="group">
         <span class="lbl">세포의 ATP 사용</span>
-        <label class="field"><input type="range" id="atp-use" min="0" max="20" step="1" value="3"> <b id="atp-use-v">0.3/초</b></label>
+        <label class="field"><input type="range" id="atp-use" min="0" max="60" step="1" value="25"> <b id="atp-use-v">2.5/초</b></label>
         <span class="note">세포 활동이 ATP를 ADP로 바꿔요. 0이면 ADP가 떨어져 ATP를 만드는 반응이 멈춰요.</span>
       </div>
     </div>
@@ -178,20 +181,21 @@ summary { cursor: pointer; color: var(--accent); font-weight: 600; }
         <button class="btn small" data-preset="">없음</button>
       </div>
       <label class="group" style="margin-top:8px"><span class="lbl">원 안 번호</span>
-        <select id="numbering" style="padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface)"><option value="origin">처음 포도당에서의 번호</option><option value="current">지금 분자 속 번호</option></select>
+        <select id="numbering" class="sel"><option value="origin">처음 포도당에서의 번호</option><option value="current">지금 분자 속 번호</option></select>
       </label>
+      <p class="note" style="margin:6px 0 0">회색은 처음부터 미토콘드리아에 있던 옥살아세트산의 탄소예요.</p>
     </div>
   </aside>
 
   <section class="stage">
-    <div class="canvas-wrap"><canvas id="scene" aria-label="세포 장면: 탄소 원자가 해당과정 효소를 따라 이동하는 모습"></canvas></div>
+    <div class="canvas-wrap"><canvas id="scene" aria-label="세포 장면: 포도당의 탄소가 해당과정, 피루브산 산화, TCA 회로를 거쳐 CO₂로 나가는 모습"></canvas></div>
     <div class="pinbox" id="pinbox">탄소를 누르면 그 탄소만 따라가며 지나온 길을 보여줘요. 마우스를 올리면 정보가 나와요.</div>
   </section>
 
   <aside class="card">
     <h2>지금 세포 안 <small>반응 순간 반짝</small></h2>
     <div class="counters" id="counters"></div>
-    <p class="note" style="margin:8px 0 0">ATP·ADP, NADH·NAD⁺ 등은 세포 안 현재 개수(합은 일정), CO₂·O₂·H₂O는 누적량이에요.</p>
+    <p class="note" style="margin:8px 0 0">ATP·ADP, NADH·NAD⁺, FADH₂·FAD는 세포 안 현재 개수(짝의 합은 일정), CO₂(방출)·O₂(소비)·H₂O(전자 전달계에서 생성)는 누적량이에요.</p>
   </aside>
 </div>
 
@@ -200,7 +204,14 @@ summary { cursor: pointer; color: var(--accent); font-weight: 600; }
     <div class="card">
       <h2>단계별 누적표 <small>포도당 1분자 기준</small></h2>
       <div class="tablewrap"><table id="ledger"></table></div>
-      <p class="note" style="margin:6px 0 0">측정값 = 지금까지 일어난 반응의 합 ÷ 피루브산까지 처리된 포도당 수.</p>
+      <label class="field" style="margin-top:8px">ATP 환산 기준
+        <select id="basis" class="sel"><option value="new">NADH 2.5, FADH₂ 1.5 (현재 교과서, 약 32)</option><option value="old">NADH 3, FADH₂ 2 (이전 교과서, 약 38)</option></select>
+      </label>
+      <p class="note" style="margin:6px 0 0">측정값은 지금까지 실제로 일어난 반응을 그 단계를 마친 포도당 수로 나눈 값이에요.</p>
+    </div>
+    <div class="card">
+      <h2>방출된 CO₂의 탄소는 어디서? <small>최근 순</small></h2>
+      <div class="tablewrap fates"><table id="fates"></table></div>
     </div>
     <div class="card">
       <h2>자가 검사 <small>탄소 매핑 · 화학량론</small></h2>
@@ -217,162 +228,174 @@ summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 <!-- ======================================================================
-     data/species — 분자 정의
+     data/species — 분자 정의 (세포와 물질대사 수준: 탄소 골격 + 꼭 필요한 표시만)
      layout: 탄소 번호별 좌표(1 = 결합 길이), bonds: [탄소, 탄소, 결합 차수]
-     deco: 작용기 {t: 글자, at: 붙는 탄소, d: 탄소에서의 방향, bond: 결합 차수, links: 추가로 이어지는 탄소}
+     deco: 붙는 표시 {t: 글자, at: 탄소, d: 방향, bond: 결합 차수, style}
+     full: 실제 물질 이름(툴팁 · 더 알아보기용)
      ====================================================================== -->
 <script>
 'use strict';
+const zig = n => Object.fromEntries(Array.from({ length: n }, (_, i) => ['C' + (i + 1), [i * 0.87, i % 2 ? 0.5 : 0]]));
 const chainBonds = n => Array.from({ length: n - 1 }, (_, i) => ['C' + (i + 1), 'C' + (i + 2), 1]);
-const zig3 = { C1: [0, 0], C2: [0.87, 0.5], C3: [1.73, 0] };
 const P = (at, dx, dy) => ({ t: 'P', at, d: [dx, dy], bond: 1, style: 'phos' });
 const dO = (at, dx, dy) => ({ t: 'O', at, d: [dx, dy], bond: 2 });
-const Om = (at, dx, dy) => ({ t: 'O⁻', at, d: [dx, dy], bond: 1 });
-const OH = (at, dx, dy) => ({ t: 'OH', at, d: [dx, dy], bond: 1 });
-const Hs = (at, t, dx, dy) => ({ t, at, d: [dx, dy], bond: 0 });
-const pyranose = { C1: [1, 0], C2: [0.5, 0.87], C3: [-0.5, 0.87], C4: [-1, 0], C5: [-0.5, -0.87], C6: [-1.2, -1.6] };
-const furanose = { C1: [1.75, -0.6], C2: [0.81, -0.26], C3: [0.5, 0.69], C4: [-0.5, 0.69], C5: [-0.81, -0.26], C6: [-1.75, -0.6] };
-const ringO6 = { t: 'O', at: 'C5', d: [1, 0], bond: 1, links: ['C1'] };
-const ringO5 = { t: 'O', at: 'C5', d: [0.81, -0.59], bond: 1, links: ['C2'] };
+const TAG = (at, t, dx, dy) => ({ t, at, d: [dx, dy], bond: 1, style: 'tag' });
 
 const SPECIES = {
-  GLC:   { name: '포도당', formula: 'C₆H₁₂O₆', layout: pyranose, bonds: chainBonds(6), deco: [ringO6, OH('C6', 0.85, -0.35), OH('C1', 0.85, 0.3)] },
-  G6P:   { name: '포도당 6-인산', layout: pyranose, bonds: chainBonds(6), deco: [ringO6, P('C6', 0.85, -0.35), OH('C1', 0.85, 0.3)] },
-  F6P:   { name: '과당 6-인산', layout: furanose, bonds: chainBonds(6), deco: [ringO5, P('C6', -0.55, -0.75), OH('C1', 0.55, -0.75)] },
-  F16BP: { name: '과당 1,6-이인산', layout: furanose, bonds: chainBonds(6), deco: [ringO5, P('C6', -0.55, -0.75), P('C1', 0.55, -0.75)] },
-  DHAP:  { name: 'DHAP', full: '다이하이드록시아세톤인산', layout: zig3, bonds: chainBonds(3), deco: [P('C1', -0.8, -0.45), dO('C2', 0, 0.95), OH('C3', 0.8, -0.45)] },
-  G3P:   { name: 'G3P', full: '글리세르알데하이드 3-인산', layout: zig3, bonds: chainBonds(3), deco: [dO('C1', -0.8, -0.45), OH('C2', 0, 0.95), P('C3', 0.8, -0.45)] },
-  BPG13: { name: '1,3-BPG', full: '1,3-비스포스포글리세르산', layout: zig3, bonds: chainBonds(3), deco: [dO('C1', -0.45, -0.85), P('C1', -0.95, 0.3), OH('C2', 0, 0.95), P('C3', 0.8, -0.45)] },
-  PG3:   { name: '3-PG', full: '3-포스포글리세르산', layout: zig3, bonds: chainBonds(3), deco: [dO('C1', -0.45, -0.85), Om('C1', -0.95, 0.3), OH('C2', 0, 0.95), P('C3', 0.8, -0.45)] },
-  PG2:   { name: '2-PG', full: '2-포스포글리세르산', layout: zig3, bonds: chainBonds(3), deco: [dO('C1', -0.45, -0.85), Om('C1', -0.95, 0.3), P('C2', 0, 0.95), OH('C3', 0.8, -0.45)] },
-  PEP:   { name: 'PEP', full: '포스포엔올피루브산', layout: zig3, bonds: [['C1', 'C2', 1], ['C2', 'C3', 2]], deco: [dO('C1', -0.45, -0.85), Om('C1', -0.95, 0.3), P('C2', 0, 0.95), Hs('C3', 'H₂', 0.75, -0.4)] },
-  PYR:   { name: '피루브산', layout: zig3, bonds: chainBonds(3), deco: [dO('C1', -0.45, -0.85), Om('C1', -0.95, 0.3), dO('C2', 0, 0.95), Hs('C3', 'H₃', 0.75, -0.4)] },
+  GLC:   { name: '포도당', c: 6, layout: zig(6), bonds: chainBonds(6), deco: [] },
+  F16BP: { name: '과당 2인산', full: '과당 1,6-이인산', c: 6, layout: zig(6), bonds: chainBonds(6), deco: [P('C1', -0.8, -0.5), P('C6', 0.8, 0.2)] },
+  PYR:   { name: '피루브산', c: 3, layout: zig(3), bonds: chainBonds(3), deco: [] },
+  CO2:   { name: 'CO₂', c: 1, layout: { C1: [0, 0] }, bonds: [], deco: [dO('C1', -0.85, 0), dO('C1', 0.85, 0)] },
+  ACoA:  { name: '아세틸 CoA', c: 2, layout: zig(2), bonds: chainBonds(2), deco: [TAG('C1', 'CoA', -1.2, 0.1)] },
+  OAA:   { name: '옥살아세트산', c: 4, layout: zig(4), bonds: chainBonds(4), deco: [] },
+  CIT:   { name: '시트르산', c: 6, layout: { C1: [0, 0], C2: [0.87, 0.5], C3: [1.73, 0], C4: [2.6, 0.5], C5: [3.46, 0], C6: [1.73, -1] },
+           bonds: [['C1', 'C2', 1], ['C2', 'C3', 1], ['C3', 'C4', 1], ['C4', 'C5', 1], ['C3', 'C6', 1]], deco: [] },
+  AKG:   { name: '5탄소 화합물', full: 'α-케토글루타르산', c: 5, layout: zig(5), bonds: chainBonds(5), deco: [] },
+  SUC:   { name: '4탄소 화합물', full: '석신산', c: 4, layout: zig(4), bonds: chainBonds(4), deco: [],
+           symmetry: [['C1', 'C4'], ['C2', 'C3']] },   // 좌우 대칭: 효소가 양 끝을 구별 못 함
+  FUM:   { name: '4탄소 화합물', full: '푸마르산', c: 4, layout: zig(4), bonds: [['C1', 'C2', 1], ['C2', 'C3', 2], ['C3', 'C4', 1]], deco: [],
+           symmetry: [['C1', 'C4'], ['C2', 'C3']] },
+  MAL:   { name: '4탄소 화합물', full: '말산', c: 4, layout: zig(4), bonds: chainBonds(4), deco: [] },
 };
-// 분자별 탄소 수와 중심 좌표를 미리 계산
 for (const [id, sp] of Object.entries(SPECIES)) {
   sp.id = id;
   sp.carbons = Object.keys(sp.layout);
   const xs = sp.carbons.map(c => sp.layout[c][0]), ys = sp.carbons.map(c => sp.layout[c][1]);
   sp.cx = (Math.min(...xs) + Math.max(...xs)) / 2; sp.cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-  sp.h = Math.max(...ys) - Math.min(...ys);
-  sp.deco = sp.deco || [];
+  sp.bottom = Math.max(...ys) - sp.cy;
 }
 </script>
 
 <!-- ======================================================================
      data/reactions — 반응과 탄소 매핑
-     map: '반응물.탄소' → '생성물.탄소'. 같은 분자가 둘이면 '#1', '#2'로 구별.
-     co: 보조인자 변화(음수 = 소모), stage: 누적표에서 묶이는 단계
+     교과서 단계 하나 = 반응 하나. 여러 효소 반응을 묶었지만 탄소 자리는 실제 반응을 이어 붙여 계산한 값.
+     map: '반응물.탄소' → '생성물.탄소'. 같은 분자가 둘이면 '#1', '#2'.
+     co: 보조인자 변화(음수 = 소모), stage: 누적표 단계
      ====================================================================== -->
 <script>
 const same = (from, to, n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`${from}.C${i + 1}`, `${to}.C${i + 1}`]));
 
 const REACTIONS = {
-  hk: { short: '헥소키네이스', step: 1, name: '포도당 인산화', enzyme: '헥소키네이스', site: 'hk', stage: 'glycolysis',
-    in: ['GLC'], out: ['G6P'], co: { ATP: -1, ADP: +1 }, map: same('GLC', 'G6P', 6) },
-  pgi: { short: '인산포도당 이성질화효소', step: 2, name: '이성질화', enzyme: '포스포글루코스 이성질화효소', site: 'pgi', stage: 'glycolysis',
-    in: ['G6P'], out: ['F6P'], co: {}, map: same('G6P', 'F6P', 6) },
-  pfk: { short: 'PFK', step: 3, name: '두 번째 인산화', enzyme: '포스포프럭토키네이스(PFK)', site: 'pfk', stage: 'glycolysis',
-    in: ['F6P'], out: ['F16BP'], co: { ATP: -1, ADP: +1 }, map: same('F6P', 'F16BP', 6) },
-  aldolase: { short: '알돌레이스', step: 4, name: '6탄소 → 3탄소 2개', enzyme: '알돌레이스', site: 'aldolase', stage: 'glycolysis',
-    in: ['F16BP'], out: ['DHAP', 'G3P'], co: {},
-    map: { 'F16BP.C1': 'DHAP.C1', 'F16BP.C2': 'DHAP.C2', 'F16BP.C3': 'DHAP.C3',
-           'F16BP.C4': 'G3P.C1', 'F16BP.C5': 'G3P.C2', 'F16BP.C6': 'G3P.C3' } },
-  tpi: { short: 'TPI', step: 5, name: 'DHAP → G3P', enzyme: '트라이오스인산 이성질화효소', site: 'tpi', stage: 'glycolysis',
-    in: ['DHAP'], out: ['G3P'], co: {},
-    map: { 'DHAP.C1': 'G3P.C3', 'DHAP.C2': 'G3P.C2', 'DHAP.C3': 'G3P.C1' } },
-  gapdh: { short: 'G3P 탈수소효소', step: 6, name: 'G3P 산화', enzyme: 'G3P 탈수소효소', site: 'gapdh', stage: 'glycolysis',
-    in: ['G3P'], out: ['BPG13'], co: { NAD: -1, NADH: +1 }, map: same('G3P', 'BPG13', 3) },
-  pgk: { short: 'PG 키네이스', step: 7, name: '첫 ATP 생성', enzyme: '포스포글리세르산 키네이스', site: 'pgk', stage: 'glycolysis',
-    in: ['BPG13'], out: ['PG3'], co: { ADP: -1, ATP: +1 }, map: same('BPG13', 'PG3', 3) },
-  pgm: { short: 'PG 뮤테이스', step: 8, name: '인산기 자리 이동', enzyme: '포스포글리세르산 뮤테이스', site: 'pgm', stage: 'glycolysis',
-    in: ['PG3'], out: ['PG2'], co: {}, map: same('PG3', 'PG2', 3) },
-  eno: { short: '에놀레이스', step: 9, name: '물 빠짐', enzyme: '에놀레이스', site: 'eno', stage: 'glycolysis',
-    in: ['PG2'], out: ['PEP'], co: { H2O: +1 }, map: same('PG2', 'PEP', 3) },
-  pk: { short: '피루브산 키네이스', step: 10, name: '두 번째 ATP 생성', enzyme: '피루브산 키네이스', site: 'pk', stage: 'glycolysis',
-    in: ['PEP'], out: ['PYR'], co: { ADP: -1, ATP: +1 }, map: same('PEP', 'PYR', 3) },
+  glyc1: { short: '해당과정 ①', gain: 'ATP 2 사용', stage: 'glycolysis', place: 'cyto',
+    name: '포도당 → 과당 2인산', in: ['GLC'], out: ['F16BP'], co: { ATP: -2, ADP: +2 }, map: same('GLC', 'F16BP', 6) },
+  glyc2: { short: '해당과정 ②', gain: 'ATP 4 · NADH 2', stage: 'glycolysis', place: 'cyto',
+    name: '과당 2인산 → 피루브산 2', in: ['F16BP'], out: ['PYR#1', 'PYR#2'], co: { ADP: -4, ATP: +4, NAD: -2, NADH: +2 },
+    // 알돌레이스로 C3–C4가 끊어지고, C1~C3 쪽은 이성질화(DHAP → G3P)에서 번호가 뒤집힌다
+    map: { 'F16BP.C3': 'PYR#1.C1', 'F16BP.C2': 'PYR#1.C2', 'F16BP.C1': 'PYR#1.C3',
+           'F16BP.C4': 'PYR#2.C1', 'F16BP.C5': 'PYR#2.C2', 'F16BP.C6': 'PYR#2.C3' } },
+  pdh: { short: '피루브산 산화', gain: 'CO₂ · NADH', stage: 'pyrox', place: 'matrix',
+    name: '피루브산 → 아세틸 CoA', in: ['PYR'], out: ['ACoA', 'CO2'], co: { NAD: -1, NADH: +1 },
+    map: { 'PYR.C1': 'CO2.C1', 'PYR.C2': 'ACoA.C1', 'PYR.C3': 'ACoA.C2' } },
+  cs: { short: '시트르산 합성', gain: '', stage: 'tca', place: 'matrix',
+    name: '아세틸 CoA + 옥살아세트산 → 시트르산', in: ['ACoA', 'OAA'], out: ['CIT'], co: {},
+    // 아세틸 CoA의 메틸 탄소가 옥살아세트산 C2(카보닐)에 붙는다. C6 = 옥살아세트산 C1에서 온 가운데 카복실기
+    map: { 'ACoA.C1': 'CIT.C1', 'ACoA.C2': 'CIT.C2', 'OAA.C2': 'CIT.C3', 'OAA.C3': 'CIT.C4', 'OAA.C4': 'CIT.C5', 'OAA.C1': 'CIT.C6' } },
+  c6to5: { short: '6C → 5C', gain: 'CO₂ · NADH', stage: 'tca', place: 'matrix',
+    name: '시트르산 → 5탄소 화합물', in: ['CIT'], out: ['AKG', 'CO2'], co: { NAD: -1, NADH: +1 },
+    // 아이소시트르산을 거쳐 가운데 카복실기(옥살아세트산에서 온 탄소)가 빠진다
+    map: { 'CIT.C6': 'CO2.C1', 'CIT.C5': 'AKG.C1', 'CIT.C4': 'AKG.C2', 'CIT.C3': 'AKG.C3', 'CIT.C2': 'AKG.C4', 'CIT.C1': 'AKG.C5' } },
+  c5to4: { short: '5C → 4C', gain: 'CO₂ · NADH · ATP', stage: 'tca', place: 'matrix',
+    name: '5탄소 화합물 → 4탄소 화합물', in: ['AKG'], out: ['SUC', 'CO2'], co: { NAD: -1, NADH: +1, ADP: -1, ATP: +1 },
+    map: { 'AKG.C1': 'CO2.C1', 'AKG.C2': 'SUC.C1', 'AKG.C3': 'SUC.C2', 'AKG.C4': 'SUC.C3', 'AKG.C5': 'SUC.C4' } },
+  sdh: { short: '4C → 4C', gain: 'FADH₂', stage: 'tca', place: 'matrix',
+    name: '4탄소 화합물 → 4탄소 화합물', in: ['SUC'], out: ['FUM'], co: { FAD: -1, FADH2: +1 }, map: same('SUC', 'FUM', 4) },
+  fum: { short: '4C → 4C', gain: '', stage: 'tca', place: 'matrix',
+    name: '4탄소 화합물 → 4탄소 화합물', in: ['FUM'], out: ['MAL'], co: {}, map: same('FUM', 'MAL', 4) },
+  mdh: { short: '4C → 옥살아세트산', gain: 'NADH', stage: 'tca', place: 'matrix',
+    name: '4탄소 화합물 → 옥살아세트산', in: ['MAL'], out: ['OAA'], co: { NAD: -1, NADH: +1 }, map: same('MAL', 'OAA', 4) },
 };
 for (const [id, rx] of Object.entries(REACTIONS)) rx.id = id;
 
-/* 각 분자를 다음에 소비하는 반응 (해당과정 경로) — 3단계부터 피루브산 이후가 이어진다 */
-const NEXT = { GLC: 'hk', G6P: 'pgi', F6P: 'pfk', F16BP: 'aldolase', DHAP: 'tpi', G3P: 'gapdh', BPG13: 'pgk', PG3: 'pgm', PG2: 'eno', PEP: 'pk', PYR: null };
+/* 각 분자를 다음에 쓰는 반응 */
+const NEXT = { GLC: 'glyc1', F16BP: 'glyc2', PYR: 'pdh', ACoA: 'cs', OAA: 'cs', CIT: 'c6to5', AKG: 'c5to4', SUC: 'sdh', FUM: 'fum', MAL: 'mdh', CO2: null };
 
-/* 보조인자 풀: 합이 일정한 짝 */
-const POOLS0 = { ATP: 20, ADP: 10, NAD: 24, NADH: 0, FAD: 10, FADH2: 0, NADP: 10, NADPH: 0 };
+/* 보조인자 풀: 짝의 합이 일정 */
+const POOLS0 = { ATP: 30, ADP: 30, NAD: 30, NADH: 0, FAD: 10, FADH2: 0, NADP: 10, NADPH: 0 };
+const ATP_BASIS = { new: { NADH: 2.5, FADH2: 1.5 }, old: { NADH: 3, FADH2: 2 } };
+const OAA_START = 3;   // 처음부터 기질에 있는 옥살아세트산 분자 수
 </script>
 
 <!-- ======================================================================
-     data/layouts — 장면 좌표 (기준 1600 × 900)
-     효소 자리: q = 대기줄 방향(앞 칸 간격), out = 생성물이 놓이는 자리
+     data/layouts — 장면 좌표 (기준 1280 × 720)
      ====================================================================== -->
 <script>
-const WORLD = { w: 1280, h: 720 };   // 장면 기준 좌표
-const BOND = 30;              // 결합 길이(px)
+const WORLD = { w: 1280, h: 720 };
+const BOND = 28;
 const R_ATOM = 11;
-const LAYOUT_RESP = {
-  cell: { x: 70, y: 28, w: 1505, h: 845, r: 60 },
-  mito: { x: 1080, y: 110, w: 470, h: 690 },
-  entry: { x: -60, y: 190 },
-  glut: { x: 70, y: 190 },
+const RING = { x: 845, y: 410, r: 150 };
+const ringOrder = ['cs', 'c6to5', 'c5to4', 'sdh', 'fum', 'mdh'];
+const LAYOUT = {
+  cell: { x: 18, y: 14, w: 1122, h: 692, r: 44 },
+  mito: { x: 560, y: 44, w: 566, h: 648, r: 96 },
+  outside: { x: 1150 },
+  entry: { x: -50, y: 170 },
+  glut: { x: 18, y: 170 },
+  etc: { y: 677, x0: 700, x1: 1080 },
   sites: {
-    hk:       { x: 230, y: 190, q: [-125, 0], out: [[118, 0]] },
-    pgi:      { x: 470, y: 190, q: [-125, 0], out: [[118, 0]] },
-    pfk:      { x: 710, y: 190, q: [-125, 0], out: [[118, 0]] },
-    aldolase: { x: 940, y: 290, q: [-80, -95], out: [[0, 125], [-140, 110]] },
-    tpi:      { x: 940, y: 520, q: [0, -105], out: [[-125, 0]] },
-    gapdh:    { x: 700, y: 520, q: [118, 0], out: [[-118, 0]] },
-    pgk:      { x: 460, y: 520, q: [118, 0], out: [[-118, 0]] },
-    pgm:      { x: 220, y: 600, q: [110, -50], out: [[20, 125]] },
-    eno:      { x: 330, y: 775, q: [-90, -80], out: [[122, 0]] },
-    pk:       { x: 580, y: 775, q: [-122, 0], out: [[122, 0]] },
+    glyc1: { x: 190, y: 170, q: [-95, 0], out: [[96, 0]] },
+    glyc2: { x: 410, y: 170, q: [-100, 0], out: [[92, -38], [92, 40]] },
+    pdh:   { x: 680, y: 150, q: [-88, 0], out: [[95, 10], [0, -68]], labelDy: -52 },
   },
-  park: { x: 800, y: 690, cols: 2, dx: 112, dy: 56, label: '미토콘드리아로 들어갈 피루브산' },
-  flow: [['hk', 'pgi'], ['pgi', 'pfk'], ['pfk', 'aldolase'], ['aldolase', 'tpi'], ['aldolase', 'gapdh'], ['tpi', 'gapdh'], ['gapdh', 'pgk'], ['pgk', 'pgm'], ['pgm', 'eno'], ['eno', 'pk']],
+  fermentNote: { x: 285, y: 460 },
 };
+/* TCA 회로: 원 위에 6자리. 줄은 앞 자리 쪽, 생성물은 다음 자리 쪽, CO₂는 바깥쪽에 놓인다 */
+ringOrder.forEach((id, i) => {
+  const ang = -Math.PI / 2 + i * Math.PI / 3;
+  const at = k => { const a = -Math.PI / 2 + ((k + 6) % 6) * Math.PI / 3; return { x: RING.x + RING.r * Math.cos(a), y: RING.y + RING.r * Math.sin(a) }; };
+  const me = at(i), prev = at(i - 1), next = at(i + 1);
+  const u = (a, b, k) => { const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy); return [dx / d * k, dy / d * k]; };
+  const radial = [Math.cos(ang), Math.sin(ang)];
+  LAYOUT.sites[id] = { x: me.x, y: me.y, q: u(me, prev, 30), qs: 62, out: [u(me, next, 52), [radial[0] * 58, radial[1] * 58]], ring: true, radial };
+});
+LAYOUT.sites.cs.q = { OAA: LAYOUT.sites.cs.q, ACoA: [-70, -48] };
+const CO2_SLOT = i => ({ x: 1182 + (i % 2) * 58, y: 48 + Math.floor(i / 2) * 31 });
+const CO2_MAX = 38;
+
 /* 탄소 색: Okabe–Ito 색맹 안전 팔레트 (포도당 C1~C6) */
-/* 아래 좌표는 1600×900 기준으로 적고, 1280×720으로 줄여 쓴다(원자 크기는 그대로라 상대적으로 크게 보임) */
-(function shrink(k) {
-  const L = LAYOUT_RESP, sc = o => { for (const key of ['x', 'y', 'w', 'h', 'r']) if (key in o) o[key] *= k; };
-  [L.cell, L.mito, L.entry, L.glut].forEach(sc);
-  L.park.x *= k; L.park.y *= k;
-  for (const st of Object.values(L.sites)) { st.x *= k; st.y *= k; st.q = st.q.map(v => v * 0.85); st.out = st.out.map(o => o.map(v => v * 0.85)); }
-})(0.8);
 const LABEL_COLORS = { 1: '#E69F00', 2: '#56B4E9', 3: '#009E73', 4: '#F0E442', 5: '#0072B2', 6: '#D55E00' };
 const LABEL_TEXT = { 1: '#1b1300', 2: '#04202e', 3: '#ffffff', 4: '#262300', 5: '#ffffff', 6: '#ffffff' };
 </script>
 
 <!-- ======================================================================
-     data/explanations — 설명 패널
+     data/explanations — 설명 패널 (세포와 물질대사 수준)
      ====================================================================== -->
 <script>
+const EXPLAIN_INTRO = [
+  { title: '세포호흡 한눈에', rows: [['장소', '해당과정은 세포질, 피루브산 산화와 TCA 회로는 미토콘드리아 기질, 전자 전달계는 미토콘드리아 내막'],
+    ['전체', 'C₆H₁₂O₆ + 6O₂ + 6H₂O → 6CO₂ + 12H₂O + 에너지(ATP)'],
+    ['탄소', '포도당의 탄소 6개는 결국 모두 CO₂가 되어 나가요. 피루브산 산화에서 2개, TCA 회로에서 4개.']] },
+];
 const EXPLAIN = {
-  hk: { place: '세포질', eq: '포도당 + ATP → 포도당 6-인산 + ADP', energy: 'ATP 1개 소모',
-    carbon: '탄소 배치 그대로. C6에 인산기가 붙어 포도당이 세포 밖으로 나가지 못해요.' },
-  pgi: { place: '세포질', eq: '포도당 6-인산 → 과당 6-인산', energy: '없음',
-    carbon: '6각 고리(피라노스)가 5각 고리(퓨라노스)로 바뀌어요. C1이 고리 밖으로 나와 다음 인산화 자리가 생겨요.' },
-  pfk: { place: '세포질', eq: '과당 6-인산 + ATP → 과당 1,6-이인산 + ADP', energy: 'ATP 1개 소모 (투자 단계 끝: 모두 2개)',
-    carbon: '탄소 배치 그대로. 양 끝 C1, C6에 인산기가 하나씩 붙어요.',
-    more: 'PFK는 해당과정의 속도를 조절하는 핵심 효소예요. ATP가 많으면 억제되고 AMP가 많으면 활성화돼요.' },
-  aldolase: { place: '세포질', eq: '과당 1,6-이인산 → DHAP + G3P', energy: '없음',
-    carbon: 'C3–C4 결합이 끊어져요. 포도당 C1~C3 → DHAP, C4~C6 → G3P.' },
-  tpi: { place: '세포질', eq: 'DHAP ⇄ G3P', energy: '없음',
-    carbon: '<b>번호가 뒤집혀요.</b> DHAP C1 → G3P C3, DHAP C3 → G3P C1. 그래서 포도당 C3과 C4가 똑같이 G3P의 C1(알데하이드 탄소)이 돼요.',
-    more: '이 이성질화 덕분에 포도당 하나에서 똑같은 G3P 두 개가 나오고, 포도당 C1과 C6, C2와 C5, C3과 C4가 같은 운명을 갖게 돼요.' },
-  gapdh: { place: '세포질', eq: 'G3P + NAD⁺ + Pᵢ → 1,3-BPG + NADH + H⁺', energy: 'NADH 1개 생성 (포도당당 2개)',
-    carbon: 'C1(알데하이드)이 산화되어 고에너지 인산 결합을 가진 카복실기가 돼요.',
-    more: 'NAD⁺가 없으면 이 반응이 멈춰요. 그래서 세포는 전자전달계(산소)나 발효로 NAD⁺를 다시 만들어야 해요. 위쪽 카운터에서 NAD⁺가 줄어드는 것을 확인해 보세요.' },
-  pgk: { place: '세포질', eq: '1,3-BPG + ADP → 3-PG + ATP', energy: 'ATP 1개 생성 (기질 수준 인산화)',
-    carbon: '탄소 배치 그대로. C1의 인산기가 ADP로 옮겨 가요.' },
-  pgm: { place: '세포질', eq: '3-PG → 2-PG', energy: '없음', carbon: '인산기가 C3에서 C2로 옮겨 가요.' },
-  eno: { place: '세포질', eq: '2-PG → PEP + H₂O', energy: '없음 (H₂O 1개 생성)', carbon: 'C2와 C3 사이에 이중 결합이 생겨요.' },
-  pk: { place: '세포질', eq: 'PEP + ADP → 피루브산 + ATP', energy: 'ATP 1개 생성 (기질 수준 인산화)',
-    carbon: '피루브산 C1(카복실기) ← 포도당 C3·C4, C2(카보닐기) ← C2·C5, C3(메틸기) ← C1·C6.',
-    more: '다음 단계(피루브산 산화)에서 카복실 탄소 C1이 CO₂로 빠져나가요. 즉 포도당 C3과 C4가 가장 먼저 CO₂가 돼요.' },
+  glyc1: { place: '세포질', eq: '포도당 + 2ATP → 과당 2인산 + 2ADP', energy: 'ATP 2개 사용 (활성화 단계)',
+    carbon: '탄소 6개의 배치는 그대로예요. 양 끝(C1, C6)에 인산기가 붙어요.' },
+  glyc2: { place: '세포질', eq: '과당 2인산 + 4ADP + 2NAD⁺ → 피루브산 2 + 4ATP + 2NADH', energy: 'ATP 4개, NADH 2개 생성 (해당과정 전체로 순 ATP 2개)',
+    carbon: '6탄소가 3탄소 2개로 나뉘어요. 피루브산 C1 ← 포도당 C3·C4, C2 ← C2·C5, C3 ← C1·C6.',
+    more: '실제로는 과당 2인산이 C3–C4 사이에서 끊어져 DHAP와 G3P가 되고, DHAP가 G3P로 바뀔 때 탄소 번호가 뒤집혀요. 그래서 포도당 C3과 C4가 똑같이 피루브산의 카복실기 탄소(C1)가 돼요.' },
+  pdh: { place: '미토콘드리아 기질', eq: '피루브산 + NAD⁺ + CoA → 아세틸 CoA + CO₂ + NADH', energy: 'NADH 1개 (포도당당 2개)',
+    carbon: '피루브산의 카복실기 탄소(C1 = 포도당 C3·C4)가 CO₂로 빠져나가요. 포도당 탄소 중 가장 먼저 CO₂가 되는 탄소예요.' },
+  cs: { place: '미토콘드리아 기질', eq: '아세틸 CoA(2C) + 옥살아세트산(4C) → 시트르산(6C)', energy: '없음',
+    carbon: '아세틸 CoA의 탄소 2개가 옥살아세트산에 붙어 6탄소가 돼요.' },
+  c6to5: { place: '미토콘드리아 기질', eq: '시트르산(6C) → 5탄소 화합물 + CO₂', energy: 'NADH 1개',
+    carbon: '이때 나가는 CO₂의 탄소는 이번에 들어온 아세틸 CoA가 아니라 <b>원래 있던 옥살아세트산</b>의 탄소예요.',
+    more: '5탄소 화합물은 α-케토글루타르산이에요. 시트르산이 아이소시트르산으로 바뀐 뒤, 옥살아세트산에서 온 가운데 카복실기가 떨어져요.' },
+  c5to4: { place: '미토콘드리아 기질', eq: '5탄소 화합물 → 4탄소 화합물 + CO₂', energy: 'NADH 1개, ATP 1개 (기질 수준 인산화)',
+    carbon: '이번 CO₂도 옥살아세트산에서 온 탄소예요. 그래서 처음 들어온 아세틸 CoA의 탄소는 <b>첫 바퀴에서는 CO₂로 나가지 않아요.</b>',
+    more: '4탄소 화합물은 석신산이에요(석시닐 CoA를 거침). 석신산은 좌우 대칭이라 다음 효소가 양 끝을 구별하지 못해요. 그래서 표지 탄소의 자리가 50% 확률로 뒤바뀌어요(scrambling).' },
+  sdh: { place: '미토콘드리아 기질 (내막에 붙은 효소)', eq: '4탄소 화합물 → 4탄소 화합물', energy: 'FADH₂ 1개',
+    carbon: '탄소 수는 그대로예요. 대칭 분자라서 탄소 자리가 섞일 수 있어요.', more: '석신산 → 푸마르산. 이 효소(석신산 탈수소효소)는 전자 전달계의 복합체 Ⅱ이기도 해요.' },
+  fum: { place: '미토콘드리아 기질', eq: '4탄소 화합물 + H₂O → 4탄소 화합물', energy: '없음',
+    carbon: '탄소 수는 그대로예요.', more: '푸마르산 → 말산.' },
+  mdh: { place: '미토콘드리아 기질', eq: '4탄소 화합물 → 옥살아세트산', energy: 'NADH 1개',
+    carbon: '옥살아세트산이 다시 만들어져 회로가 이어져요. 이 옥살아세트산에는 아세틸 CoA에서 온 탄소 2개가 들어 있어요.',
+    more: '말산 → 옥살아세트산. 아세틸 CoA의 카보닐 탄소(포도당 C2·C5)는 두 번째 바퀴에, 메틸 탄소(포도당 C1·C6)는 세 번째 바퀴부터 CO₂로 나가기 시작해요.' },
+  etc: { place: '미토콘드리아 내막', eq: 'NADH, FADH₂ → 전자 전달 → O₂ + H⁺ → H₂O, ADP + Pᵢ → ATP', energy: 'NADH 1개당 ATP 약 2.5개, FADH₂ 1개당 약 1.5개',
+    carbon: '탄소는 참여하지 않아요. 앞 단계에서 만든 NADH와 FADH₂의 에너지로 ATP를 만들어요.',
+    more: '전자와 H⁺의 흐름, ATP 합성효소의 회전, 억제제 실험은 4단계에서 자세히 보여줄게요.' },
 };
 </script>
 
 <!-- ======================================================================
-     model — 원자, 분자, 반응 엔진, 장부 (화면과 무관한 계산)
+     model — 매핑 검사와 반응 실행 (화면과 무관한 계산)
      ====================================================================== -->
 <script>
 const slotSpecies = slot => slot.split('#')[0];
@@ -385,11 +408,10 @@ function parseMap(rx) {
 /* 매핑 검사: 반응물 탄소가 모두 한 번씩, 생성물 탄소가 모두 한 번씩 */
 function validateReaction(rx) {
   const errs = [];
-  const list = parseMap(rx);
-  const need = (slots) => slots.flatMap(s => { const sp = SPECIES[slotSpecies(s)]; return sp ? sp.carbons.map(c => `${s}.${c}`) : (errs.push(`없는 분자 ${s}`), []); });
+  const need = slots => slots.flatMap(s => { const sp = SPECIES[slotSpecies(s)]; return sp ? sp.carbons.map(c => `${s}.${c}`) : (errs.push(`없는 분자 ${s}`), []); });
   const ins = need(rx.in), outs = need(rx.out);
   const fromSeen = new Set(), toSeen = new Set();
-  list.forEach(m => {
+  parseMap(rx).forEach(m => {
     const f = `${m.fs}.${m.fc}`, t = `${m.ts}.${m.tc}`;
     if (!ins.includes(f)) errs.push(`반응물에 없는 탄소 ${f}`);
     if (!outs.includes(t)) errs.push(`생성물에 없는 탄소 ${t}`);
@@ -401,13 +423,13 @@ function validateReaction(rx) {
   outs.forEach(t => { if (!toSeen.has(t)) errs.push(`${t}가 비어 있음`); });
   return errs;
 }
-/* 반응 실행(순수 계산): 반응물 분자들의 탄소를 생성물 자리로 옮긴다 */
-function applyMapping(rx, reactants /* {slot: {atoms:{C1:..}}} */) {
+/* 반응 실행(순수 계산): 대칭 분자는 50% 확률로 양 끝을 바꾼 뒤 매핑 */
+function applyMapping(rx, reactants /* {slot: {atoms}} */, rand = Math.random) {
   const src = {};
   for (const slot of rx.in) {
     const atoms = { ...reactants[slot].atoms };
     const sym = SPECIES[slotSpecies(slot)].symmetry;
-    if (sym && Math.random() < 0.5) sym.forEach(([a, b]) => { const t = atoms[a]; atoms[a] = atoms[b]; atoms[b] = t; });
+    if (sym && rand() < 0.5) sym.forEach(([a, b]) => { const t = atoms[a]; atoms[a] = atoms[b]; atoms[b] = t; });
     src[slot] = atoms;
   }
   const out = Object.fromEntries(rx.out.map(s => [s, {}]));
@@ -417,7 +439,7 @@ function applyMapping(rx, reactants /* {slot: {atoms:{C1:..}}} */) {
 </script>
 
 <!-- ======================================================================
-     anim + scheduler — 장면, 분자 흐름, 반응 애니메이션
+     anim + scheduler — 분자 흐름, 반응 애니메이션, 전자 전달계(간단)
      ====================================================================== -->
 <script>
 const canvas = document.getElementById('scene');
@@ -425,36 +447,48 @@ const ctx = canvas.getContext('2d');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
 const T_FOCUS = 0.45, T_MOVE = 1.35, T_SETTLE = 0.35;   // 반응 한 번의 시간(초, 1× 기준)
+const SITE_RX = Object.fromEntries(Object.values(REACTIONS).map(r => [r.id, r]));   // 효소 자리 id = 반응 id
 
 let theme = {};
+let FONT = 'sans-serif';
 function readTheme() {
   const cs = getComputedStyle(document.documentElement);
   ['bg', 'surface', 'surface-2', 'ink', 'muted', 'line', 'cyto', 'outside', 'membrane', 'mito', 'mito-fill', 'ims', 'station', 'station-line', 'bond', 'gray-atom', 'phos', 'accent', 'warn']
     .forEach(k => { theme[k] = cs.getPropertyValue('--' + k).trim(); });
+  FONT = getComputedStyle(document.body).fontFamily;
   bgCache = null;
 }
 
-const W = {};   // 시뮬레이션 상태
+const W = {};
 function resetWorld() {
   Object.assign(W, {
     time: 0, mols: [], trs: [], floats: [], trails: [], atoms: [],
     pools: { ...POOLS0 }, cum: { CO2: 0, O2: 0, H2O: 0 },
-    stage: { glycolysis: { ATPuse: 0, ATPmade: 0, NADH: 0, H2O: 0 } },
-    glcIn: 0, pyrOut: 0, done: 0, atpAcc: 0, supplyAcc: 0,
-    stations: Object.fromEntries(Object.keys(LAYOUT_RESP.sites).map(k => [k, { id: k, ...LAYOUT_RESP.sites[k], busy: false, queue: [], wait: '' }])),
-    seqAtom: 0, seqMol: 0, lastRx: null, pinned: null, pinTrail: [], stepGoal: null,
+    stage: { glycolysis: { ATPuse: 0, ATPmade: 0, NADH: 0, n: 0 }, pyrox: { NADH: 0, CO2: 0, n: 0 },
+             tca: { NADH: 0, FADH2: 0, ATP: 0, CO2: 0, n: 0 }, oxphos: { ATP: 0, NADH: 0, FADH2: 0 } },
+    glcIn: 0, done: 0, turns: 0, atpAcc: 0, supplyAcc: 0, etcAcc: 0, atpFrac: 0, etcFlash: -9,
+    stations: Object.fromEntries(Object.keys(LAYOUT.sites).map(k => [k, { id: k, ...LAYOUT.sites[k], busy: false, queue: [], wait: '' }])),
+    seqAtom: 0, seqMol: 0, lastRx: null, pinned: null, pinTrail: [], stepGoal: null, released: [], co2Shown: [],
   });
+  // 처음부터 기질에 있는 옥살아세트산 (표지 안 된 회색 탄소)
+  for (let k = 0; k < OAA_START; k++) {
+    const atoms = {};
+    for (let i = 1; i <= 4; i++) atoms['C' + i] = newAtom({ kind: 'oaa', idx: k + 1 }, 0);
+    const st = W.stations.mdh, [ox, oy] = st.out[0];
+    const m = makeMol('OAA', atoms, st.x + ox * (1 + k * 0.9), st.y + oy * (1 + k * 0.9), 'free');
+    placeAtoms(m);
+  }
 }
 
 /* ---------- 원자 · 분자 ---------- */
-function newAtom(batch, pos) {
-  const a = { id: ++W.seqAtom, batch, pos, hist: [], x: 0, y: 0, tr: null, mol: null, cur: '' };
+function newAtom(origin, pos) {
+  const a = { id: ++W.seqAtom, origin, pos, hist: [], x: 0, y: 0, tr: null, mol: null, cur: '', turn: 0, fate: null };
   W.atoms.push(a);
   return a;
 }
 function makeMol(spId, atoms, x, y, state) {
   const sp = SPECIES[spId];
-  const m = { id: ++W.seqMol, sp: spId, atoms, x, y, tx: x, ty: y, state, born: W.time, wob: Math.random() * 6.28, alpha: 1 };
+  const m = { id: ++W.seqMol, sp: spId, atoms, x, y, tx: x, ty: y, state, born: W.time, wob: Math.random() * 6.28 };
   for (const c of sp.carbons) {
     const a = atoms[c]; a.mol = m; a.cur = c;
     a.hist.push({ sp: spId, c, t: W.time });
@@ -466,55 +500,69 @@ function atomTarget(m, c) {
   const sp = SPECIES[m.sp], [lx, ly] = sp.layout[c];
   return { x: m.x + (lx - sp.cx) * BOND, y: m.y + (ly - sp.cy) * BOND };
 }
+function placeAtoms(m) { for (const c of SPECIES[m.sp].carbons) { const p = atomTarget(m, c); m.atoms[c].x = p.x; m.atoms[c].y = p.y; } }
 function addGlucose() {
-  const n = ++W.glcIn;
-  const atoms = {};
-  for (let i = 1; i <= 6; i++) atoms['C' + i] = newAtom(n, i);
-  const e = LAYOUT_RESP.entry;
-  const m = makeMol('GLC', atoms, e.x, e.y + (Math.random() - 0.5) * 20, 'free');
-  for (const c of SPECIES.GLC.carbons) { const p = atomTarget(m, c); atoms[c].x = p.x; atoms[c].y = p.y; }
-  return m;
+  const n = ++W.glcIn, atoms = {};
+  for (let i = 1; i <= 6; i++) atoms['C' + i] = newAtom({ kind: 'glc', batch: n }, i);
+  const e = LAYOUT.entry;
+  placeAtoms(makeMol('GLC', atoms, e.x, e.y + (Math.random() - 0.5) * 20, 'free'));
 }
 
-/* ---------- 분자 흐름: 다음 효소 자리로 이동, 줄 서기, 반응 ---------- */
-function stationFor(m) { const rx = NEXT[m.sp]; return rx ? W.stations[REACTIONS[rx].site] : null; }
-function parkSlot(i) {
-  const p = LAYOUT_RESP.park;
-  return { x: p.x + (i % p.cols) * p.dx, y: p.y + Math.floor(i / p.cols) * p.dy };
-}
+/* ---------- 분자 흐름 ---------- */
+const arrived = m => Math.hypot(m.x - m.tx, m.y - m.ty) < 3;
+function queueVec(st, sp) { return Array.isArray(st.q) ? st.q : (st.q[sp] || Object.values(st.q)[0]); }
 function updateFlow(dt) {
-  // 대기줄 정리
   for (const st of Object.values(W.stations)) st.queue = st.queue.filter(m => m.state === 'free' && W.mols.includes(m));
-  let parkIdx = 0;
   for (const m of W.mols) {
     if (m.state !== 'free') continue;
-    const st = stationFor(m);
-    if (st) {
+    const rxId = NEXT[m.sp];
+    if (rxId) {
+      const st = W.stations[rxId];
       if (!st.queue.includes(m)) st.queue.push(m);
-      const i = st.queue.indexOf(m);
-      m.tx = st.x + st.q[0] * (i + 1) * (i === 0 ? 1 : 0.85);
-      m.ty = st.y + st.q[1] * (i + 1) * (i === 0 ? 1 : 0.85) + (i > 0 ? (i % 2 ? 10 : -10) : 0);
-    } else {
-      const s = parkSlot(parkIdx++);
-      m.tx = s.x; m.ty = s.y;
+      const i = st.queue.filter(x => x.sp === m.sp).indexOf(m);
+      const [qx, qy] = queueVec(st, m.sp);
+      const ql = Math.hypot(qx, qy);
+      const k = st.qs ? 1 + i * st.qs / ql : (i === 0 ? 1 : 1 + i * 0.8);
+      m.tx = st.x + qx * k + (i > 0 ? (i % 2 ? 7 : -7) : 0);
+      m.ty = st.y + qy * k + (i > 0 ? (i % 2 ? 9 : -9) : 0);
+    } else if (m.sp === 'CO2') {
+      // 세포 밖으로 나간 CO₂: 바깥 칸에 차례로 쌓임
+      let idx = W.co2Shown.indexOf(m);
+      if (idx < 0) { W.co2Shown.push(m); idx = W.co2Shown.length - 1; }
+      const s = CO2_SLOT(idx); m.tx = s.x; m.ty = s.y;
     }
-    // 부드럽게 다가가기 (가까울수록 느려짐)
     const dx = m.tx - m.x, dy = m.ty - m.y, d = Math.hypot(dx, dy);
     if (d > 0.3) {
-      const v = Math.min(d, Math.max(30, Math.min(170, d * 2.2)) * dt);
+      const v = Math.min(d, Math.max(30, Math.min(m.sp === 'CO2' ? 260 : 170, d * 2.2)) * dt);
       m.x += dx / d * v; m.y += dy / d * v;
     }
+  }
+  // 바깥 칸이 차면 가장 오래된 CO₂를 화면에서 내림 (기록은 표에 남음)
+  while (W.co2Shown.length > CO2_MAX) {
+    const old = W.co2Shown.shift();
+    W.mols.splice(W.mols.indexOf(old), 1);
+    W.atoms.splice(W.atoms.indexOf(old.atoms.C1), 1);
+    if (W.pinned === old.atoms.C1) { W.pinned = null; W.pinTrail = []; }
   }
   // 반응 일으키기
   for (const st of Object.values(W.stations)) {
     st.wait = '';
-    if (st.busy || !st.queue.length) continue;
-    const head = st.queue[0];
-    if (Math.hypot(head.x - head.tx, head.y - head.ty) > 3) continue;
-    const rx = REACTIONS[NEXT[head.sp]];
+    if (st.busy) continue;
+    const rx = SITE_RX[st.id];
+    const pick = [];
+    for (const slot of rx.in) {
+      const sp = slotSpecies(slot);
+      const m = st.queue.find(x => x.sp === sp && !pick.includes(x) && st.queue.filter(y => y.sp === sp).indexOf(x) === 0 && arrived(x));
+      if (!m) break;
+      pick.push(m);
+    }
+    if (pick.length !== rx.in.length) {
+      if (rx.id === 'cs' && st.queue.some(m => m.sp === 'ACoA') && !st.queue.some(m => m.sp === 'OAA')) st.wait = '옥살아세트산 기다리는 중';
+      continue;
+    }
     const lack = Object.entries(rx.co).filter(([k, v]) => v < 0 && W.pools[k] < -v).map(([k]) => k);
     if (lack.length) { st.wait = lack.map(k => CO_NAMES[k]).join(', ') + ' 부족'; continue; }
-    fire(st, rx, [head]);
+    fire(st, rx, pick);
   }
 }
 
@@ -529,36 +577,32 @@ function fire(st, rx, reactants) {
   const bySlot = {};
   rx.in.forEach((slot, i) => { bySlot[slot] = reactants[i]; });
   const out = applyMapping(rx, bySlot);
+  // 쓰는 보조인자는 반응이 시작될 때 미리 가져감 (동시에 여러 효소가 같은 NAD⁺를 쓰지 않도록)
+  for (const [k, v] of Object.entries(rx.co)) if (v < 0) W.pools[k] += v;
   reactants.forEach(m => { m.state = 'reacting'; W.mols.splice(W.mols.indexOf(m), 1); });
   const products = rx.out.map((slot, i) => {
     const [dx, dy] = st.out[i] || st.out[0];
-    const m = makeMol(slotSpecies(slot), out[slot], st.x + dx, st.y + dy, 'forming');
-    m.alpha = 0;
-    return m;
+    return makeMol(slotSpecies(slot), out[slot], st.x + dx, st.y + dy, 'forming');
   });
-  // 결합 비교: 유지 / 끊어짐 / 새로 생김
   const before = new Map(), after = new Map();
   reactants.forEach(m => bondsOf(m).forEach((v, k) => before.set(k, v)));
   products.forEach(m => bondsOf(m).forEach((v, k) => after.set(k, v)));
   const bonds = [];
   before.forEach((v, k) => bonds.push(after.has(k) ? { ...v, kind: 'keep', o2: after.get(k).o } : { ...v, kind: 'break' }));
   after.forEach((v, k) => { if (!before.has(k)) bonds.push({ ...v, kind: 'form' }); });
-
   const t0 = W.time;
-  const tr = { rx, st, reactants, products, bonds, t0, tCommit: t0 + T_FOCUS + T_MOVE, tEnd: t0 + T_FOCUS + T_MOVE + T_SETTLE, committed: false };
-  // 각 탄소의 경로: 지금 자리 → 효소 근처를 지나 → 생성물 속 자기 자리
+  // 각 탄소: 지금 자리 → 효소 자리 근처 → 생성물 속 자기 자리 (3차 베지어)
   products.forEach(pm => {
     for (const c of SPECIES[pm.sp].carbons) {
-      const a = pm.atoms[c], to = atomTarget(pm, c);
-      const from = { x: a.x, y: a.y };
-      const jx = (Math.random() - 0.5) * 18, jy = (Math.random() - 0.5) * 18;
-      const c1 = { x: from.x + (st.x - from.x) * 0.75 + jx, y: from.y + (st.y - from.y) * 0.75 - 26 + jy };
-      const c2 = { x: to.x + (st.x - to.x) * 0.75 - jx, y: to.y + (st.y - to.y) * 0.75 - 26 - jy };
+      const a = pm.atoms[c], to = atomTarget(pm, c), from = { x: a.x, y: a.y };
+      const jx = (Math.random() - 0.5) * 16, jy = (Math.random() - 0.5) * 16;
+      const c1 = { x: from.x + (st.x - from.x) * 0.75 + jx, y: from.y + (st.y - from.y) * 0.75 - 22 + jy };
+      const c2 = { x: to.x + (st.x - to.x) * 0.75 - jx, y: to.y + (st.y - to.y) * 0.75 - 22 - jy };
       a.tr = { p0: from, c1, c2, p1: to, start: t0 + T_FOCUS, dur: T_MOVE, pts: [] };
     }
   });
   st.busy = true;
-  W.trs.push(tr);
+  W.trs.push({ rx, st, reactants, products, bonds, t0, tCommit: t0 + T_FOCUS + T_MOVE, tEnd: t0 + T_FOCUS + T_MOVE + T_SETTLE, committed: false });
 }
 const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 function bez(p0, c1, c2, p1, t) {
@@ -567,13 +611,11 @@ function bez(p0, c1, c2, p1, t) {
            y: u * u * u * p0.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p1.y };
 }
 function updateTransitions() {
-  for (const tr of W.trs) {
-    if (!tr.committed && W.time >= tr.tCommit) commit(tr);
-  }
+  for (const tr of W.trs) if (!tr.committed && W.time >= tr.tCommit) commit(tr);
   const ended = W.trs.filter(tr => W.time >= tr.tEnd);
   ended.forEach(tr => {
     tr.st.busy = false;
-    tr.products.forEach(m => { m.state = 'free'; m.alpha = 1; });
+    tr.products.forEach(m => { m.state = 'free'; });
     W.done++;
     if (W.stepGoal !== null && W.done >= W.stepGoal) { W.stepGoal = null; setPaused(true); }
   });
@@ -582,22 +624,35 @@ function updateTransitions() {
 function commit(tr) {
   tr.committed = true;
   const rx = tr.rx, flashKeys = [];
-  for (const [k, v] of Object.entries(rx.co)) {
-    if (k in W.pools) W.pools[k] += v; else W.cum[k] = (W.cum[k] || 0) + v;
-    flashKeys.push(k);
-  }
+  for (const [k, v] of Object.entries(rx.co)) { if (v > 0) W.pools[k] += v; flashKeys.push(k); }
+  // 누적표
   const s = W.stage[rx.stage];
-  if (s) {
-    if (rx.co.ATP < 0) s.ATPuse += -rx.co.ATP;
-    if (rx.co.ATP > 0) s.ATPmade += rx.co.ATP;
-    if (rx.co.NADH > 0) s.NADH += rx.co.NADH;
-    if (rx.co.H2O > 0) s.H2O += rx.co.H2O;
+  if (rx.stage === 'glycolysis') { if (rx.co.ATP < 0) s.ATPuse -= rx.co.ATP; else if (rx.co.ATP > 0) s.ATPmade += rx.co.ATP; if (rx.co.NADH) s.NADH += rx.co.NADH; if (rx.id === 'glyc2') s.n++; }
+  if (rx.stage === 'pyrox') { s.NADH += rx.co.NADH; s.CO2++; s.n += 0.5; }
+  if (rx.stage === 'tca') { s.NADH += rx.co.NADH || 0; s.FADH2 += rx.co.FADH2 || 0; s.ATP += rx.co.ATP || 0; if (rx.id === 'mdh') s.n += 0.5; }
+  // TCA 회전 수: 아세틸 CoA 탄소는 들어온 바퀴가 1회전, 회로에 남은 탄소는 시트르산이 될 때마다 +1
+  if (rx.id === 'cs') {
+    const cit = tr.products[0];
+    for (const c of ['C1', 'C2']) cit.atoms[c].turn = 1;
+    for (const c of ['C3', 'C4', 'C5', 'C6']) if (cit.atoms[c].turn) cit.atoms[c].turn++;
   }
-  tr.products.forEach(m => { if (m.sp === 'PYR') { W.pyrOut++; flashKeys.push('PYR'); } });
-  if (rx.id === 'hk') flashKeys.push('GLC');
-  // 반응 장소에 떠오르는 글자
-  const tags = Object.entries(rx.co).filter(([k]) => ['ATP', 'NADH', 'H2O'].includes(k)).map(([k, v]) => `${v > 0 ? '+' : '−'}${Math.abs(v)} ${CO_NAMES[k]}`);
-  tags.forEach((t, i) => W.floats.push({ x: tr.st.x, y: tr.st.y - 34 - i * 16, text: t, t0: W.time, good: !t.startsWith('−') }));
+  if (rx.id === 'mdh') W.turns += 1;
+  // CO₂ 방출 기록
+  tr.products.filter(m => m.sp === 'CO2').forEach(m => {
+    const a = m.atoms.C1;
+    a.fate = { rx: rx.id, turn: a.turn, t: W.time };
+    W.released.unshift(a);
+    W.cum.CO2++; flashKeys.push('CO2');
+    if (rx.stage === 'tca') W.stage.tca.CO2++;
+  });
+  if (rx.id === 'glyc1') flashKeys.push('GLC');
+  if (rx.id === 'glyc2' || rx.id === 'pdh') flashKeys.push('PYR');
+  const tags = [];
+  if (rx.co.ATP) tags.push(`${rx.co.ATP > 0 ? '+' : '−'}${Math.abs(rx.co.ATP)} ATP`);
+  if (rx.co.NADH) tags.push(`+${rx.co.NADH} NADH`);
+  if (rx.co.FADH2) tags.push(`+${rx.co.FADH2} FADH₂`);
+  if (tr.products.some(m => m.sp === 'CO2')) tags.push('+CO₂');
+  tags.forEach((t, i) => W.floats.push({ x: tr.st.x, y: tr.st.y - 30 - i * 17, text: t, t0: W.time, good: !t.startsWith('−') }));
   W.lastRx = rx.id;
   flashCounters(flashKeys);
   highlightExplain(rx.id);
@@ -605,8 +660,7 @@ function commit(tr) {
 function updateAtoms(dt) {
   for (const a of W.atoms) {
     if (a.tr) {
-      const tr = a.tr;
-      const k = (W.time - tr.start) / tr.dur;
+      const tr = a.tr, k = (W.time - tr.start) / tr.dur;
       if (k >= 1) {
         a.x = tr.p1.x; a.y = tr.p1.y;
         if (tr.pts.length > 2) W.trails.push({ pts: tr.pts, atom: a, t0: W.time });
@@ -614,33 +668,61 @@ function updateAtoms(dt) {
       } else if (k > 0) {
         const p = bez(tr.p0, tr.c1, tr.c2, tr.p1, ease(k));
         a.x = p.x; a.y = p.y;
-        if (!tr.pts.length || Math.hypot(p.x - tr.pts[tr.pts.length - 1].x, p.y - tr.pts[tr.pts.length - 1].y) > 3) tr.pts.push(p);
+        const l = tr.pts[tr.pts.length - 1];
+        if (!l || Math.hypot(p.x - l.x, p.y - l.y) > 3) tr.pts.push(p);
       }
     } else if (a.mol && a.mol.state !== 'reacting') {
       const p = atomTarget(a.mol, a.cur);
-      const wob = Math.sin(W.time * 1.6 + a.mol.wob) * 1.2;
+      const wob = a.mol.sp === 'CO2' && arrived(a.mol) ? 0 : Math.sin(W.time * 1.6 + a.mol.wob) * 1.2;
       const kk = Math.min(1, dt * 12);
       a.x += (p.x - a.x) * kk; a.y += (p.y + wob - a.y) * kk;
     }
   }
   if (W.pinned) {
-    const a = W.pinned, last = W.pinTrail[W.pinTrail.length - 1];
-    if (!last || Math.hypot(a.x - last.x, a.y - last.y) > 4) { W.pinTrail.push({ x: a.x, y: a.y }); if (W.pinTrail.length > 600) W.pinTrail.shift(); }
+    const a = W.pinned, l = W.pinTrail[W.pinTrail.length - 1];
+    if (!l || Math.hypot(a.x - l.x, a.y - l.y) > 4) { W.pinTrail.push({ x: a.x, y: a.y }); if (W.pinTrail.length > 900) W.pinTrail.shift(); }
+  }
+}
+
+/* ---------- 전자 전달계 (간단 버전: 4단계에서 e⁻ · H⁺ · ATP 합성효소 애니메이션으로 확장) ---------- */
+function updateETC(dt) {
+  const o2 = ui.o2 / 100;
+  if (o2 <= 0) return;
+  W.etcAcc += dt * 1.6 * o2;
+  const basis = ATP_BASIS[ui.basis];
+  while (W.etcAcc >= 1) {
+    W.etcAcc -= 1;
+    let kind = null;
+    const n = W.pools.NADH, f = W.pools.FADH2;   // 쌓여 있는 양에 비례해 NADH나 FADH₂를 처리
+    if (n + f > 0) kind = Math.random() * (n + f) < f ? 'FADH2' : 'NADH';
+    if (!kind || W.pools.ADP < 3) break;
+    W.pools[kind]--; W.pools[kind === 'NADH' ? 'NAD' : 'FAD']++;
+    W.stage.oxphos[kind]++;
+    W.cum.O2 += 0.5; W.cum.H2O += 1;
+    W.atpFrac += basis[kind];
+    let made = 0;
+    while (W.atpFrac >= 1 && W.pools.ADP > 0) { W.atpFrac -= 1; W.pools.ADP--; W.pools.ATP++; W.stage.oxphos.ATP++; made++; }
+    W.etcFlash = W.time;
+    const x = LAYOUT.etc.x0 + Math.random() * (LAYOUT.etc.x1 - LAYOUT.etc.x0);
+    W.floats.push({ x, y: LAYOUT.etc.y - 26, text: `${kind === 'NADH' ? 'NADH' : 'FADH₂'} → +${made} ATP`, t0: W.time, good: true, small: true });
+    flashCounters([kind, 'ATP', 'O2', 'H2O']);
   }
 }
 
 /* ---------- 한 프레임 진행 ---------- */
-const ui = { paused: false, speed: 1, supply: false, supplyRate: 2, atpUse: 0.3 };
+const ui = { paused: false, speed: 1, supply: false, supplyRate: 2, atpUse: 2.5, o2: 100, basis: 'new' };
 function step(dt) {
   W.time += dt;
   if (ui.supply) {
     W.supplyAcc += dt * ui.supplyRate / 10;
-    while (W.supplyAcc >= 1) { W.supplyAcc -= 1; if (W.mols.filter(m => m.sp === 'PYR').length < 14) addGlucose(); }
+    while (W.supplyAcc >= 1) { W.supplyAcc -= 1; if (W.mols.filter(m => ['GLC', 'F16BP', 'PYR', 'ACoA'].includes(m.sp)).length < 6) addGlucose(); }   // 앞이 밀리면 공급을 잠시 쉼
   }
-  W.atpAcc += dt * ui.atpUse;
+  const tot = W.pools.ATP + W.pools.ADP;
+  W.atpAcc += dt * ui.atpUse * Math.min(1, 2 * W.pools.ATP / tot);   // ATP가 적을수록 세포 활동도 줄어듦
   while (W.atpAcc >= 1) { W.atpAcc -= 1; if (W.pools.ATP > 0) { W.pools.ATP--; W.pools.ADP++; } }
   updateFlow(dt);
   updateTransitions();
+  updateETC(dt);
   updateAtoms(dt);
   W.floats = W.floats.filter(f => W.time - f.t0 < 1.6);
   W.trails = W.trails.filter(t => W.time - t.t0 < 1.4);
@@ -660,137 +742,134 @@ function resize() {
   scale = canvas.width / WORLD.w;
   bgCache = null;
 }
-function roundRect(c, x, y, w, h, r) { c.beginPath(); c.roundRect(x, y, w, h, r); }
+function rr(c, x, y, w, h, r) { c.beginPath(); c.roundRect(x, y, w, h, r); }
+function txt(c, s, x, y, size, weight, color, align = 'center') {
+  c.font = `${weight} ${size}px ${FONT}`; c.fillStyle = color; c.textAlign = align; c.textBaseline = 'middle'; c.fillText(s, x, y);
+}
 
-/* 배경: 세포 밖 · 세포막 · 세포질 · 미토콘드리아 · 효소 자리 (미리 그려 둠) */
+/* 배경: 세포 밖 · 세포막 · 세포질 · 미토콘드리아(외막 · 막사이 공간 · 내막 · 기질) · TCA 회로 고리 */
 function drawBackground() {
   const off = document.createElement('canvas');
   off.width = canvas.width; off.height = canvas.height;
   const c = off.getContext('2d');
   c.setTransform(scale, 0, 0, scale, 0, 0);
-  const L = LAYOUT_RESP, cell = L.cell, mt = L.mito;
+  const L = LAYOUT, cell = L.cell, mt = L.mito;
   c.fillStyle = theme.outside; c.fillRect(0, 0, WORLD.w, WORLD.h);
-  // 세포막(인지질 이중층: 두 줄)
-  roundRect(c, cell.x, cell.y, cell.w, cell.h, cell.r); c.fillStyle = theme.cyto; c.fill();
+  rr(c, cell.x, cell.y, cell.w, cell.h, cell.r); c.fillStyle = theme.cyto; c.fill();
   c.lineWidth = 3; c.strokeStyle = theme.membrane; c.stroke();
-  roundRect(c, cell.x + 7, cell.y + 7, cell.w - 14, cell.h - 14, cell.r - 6); c.lineWidth = 1.5; c.stroke();
-  // 포도당 수송체
+  rr(c, cell.x + 6, cell.y + 6, cell.w - 12, cell.h - 12, cell.r - 5); c.lineWidth = 1.4; c.stroke();
   c.fillStyle = theme.membrane;
-  roundRect(c, L.glut.x - 9, L.glut.y - 30, 18, 22, 5); c.fill();
-  roundRect(c, L.glut.x - 9, L.glut.y + 8, 18, 22, 5); c.fill();
-  c.font = `600 13px ${getComputedStyle(document.body).fontFamily}`;
-  c.fillStyle = theme.muted; c.textAlign = 'center';
-  c.fillText('포도당 수송체', L.glut.x, L.glut.y + 46);
-  c.textAlign = 'left'; c.fillText('세포 밖', 8, 20);
-  c.fillText('세포질', cell.x + 22, cell.y + 30);
-  // 미토콘드리아: 외막 · 막사이 공간 · 내막(크리스타) · 기질
-  c.save(); c.globalAlpha = 0.6;
-  roundRect(c, mt.x, mt.y, mt.w, mt.h, 120); c.fillStyle = theme.ims; c.fill(); c.lineWidth = 3; c.strokeStyle = theme.mito; c.stroke();
-  const ix = mt.x + 16, iy = mt.y + 16, iw = mt.w - 32, ih = mt.h - 32;
-  c.beginPath();
-  c.roundRect(ix, iy, iw, ih, 105);
-  c.fillStyle = theme['mito-fill']; c.fill(); c.lineWidth = 2.5; c.stroke();
-  // 크리스타 주름
-  c.lineWidth = 2.5;
-  for (let i = 0; i < 4; i++) {
-    const y = iy + 130 + i * 130, left = i % 2 === 0;
-    c.beginPath();
-    const x0 = left ? ix : ix + iw, x1 = left ? ix + iw * 0.55 : ix + iw * 0.45;
-    c.moveTo(x0, y - 14); c.lineTo(x1, y - 14); c.arc(x1, y, 14, -Math.PI / 2, Math.PI / 2, !left); c.lineTo(x0, y + 14);
-    c.stroke();
+  rr(c, L.glut.x - 8, L.glut.y - 28, 16, 20, 5); c.fill();
+  rr(c, L.glut.x - 8, L.glut.y + 8, 16, 20, 5); c.fill();
+  txt(c, '세포 밖', L.outside.x + 65, 22, 13, 700, theme.muted);
+  txt(c, '방출된 CO₂', L.outside.x + 65, WORLD.h - 18, 12, 600, theme.muted);
+  txt(c, '세포질', cell.x + 50, cell.y + 26, 14, 700, theme.muted);
+  txt(c, '포도당', L.glut.x + 4, L.glut.y + 44, 12, 600, theme.muted);
+  // 해당과정 영역 표시
+  c.setLineDash([5, 6]); c.strokeStyle = theme['station-line']; c.globalAlpha = 0.4; c.lineWidth = 1.5;
+  rr(c, 70, 85, 450, 175, 20); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  txt(c, '해당과정', 112, 102, 13, 700, theme.mito, 'left');
+  txt(c, '발효(5단계)도 세포질에서 일어나요', L.fermentNote.x, L.fermentNote.y, 13, 500, theme.muted);
+  // 미토콘드리아
+  rr(c, mt.x, mt.y, mt.w, mt.h, mt.r); c.fillStyle = theme.ims; c.fill(); c.lineWidth = 3; c.strokeStyle = theme.mito; c.stroke();
+  const inn = { x: mt.x + 16, y: mt.y + 16, w: mt.w - 32, h: mt.h - 32 };
+  rr(c, inn.x, inn.y, inn.w, inn.h, mt.r - 14); c.fillStyle = theme['mito-fill']; c.fill(); c.lineWidth = 3; c.stroke();
+  txt(c, '미토콘드리아', mt.x + mt.w / 2, mt.y - 14, 14, 700, theme.mito);
+  txt(c, '외막', mt.x + 40, mt.y + 6, 11, 600, theme.mito, 'left');
+  txt(c, '막사이 공간', mt.x + mt.w - 40, mt.y + 8, 11, 600, theme.mito, 'right');
+  txt(c, '기질', mt.x + 40, mt.y + 52, 13, 700, theme.mito, 'left');
+  // 내막의 전자 전달계 자리
+  const E = L.etc;
+  const parts = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'ATP 합성효소'];
+  parts.forEach((p, i) => {
+    const w = i === 4 ? 92 : 30, x = E.x0 + i * 72 + (i === 4 ? 20 : 0);
+    rr(c, x, E.y - 13, w, 26, 8); c.fillStyle = theme.surface; c.fill(); c.lineWidth = 1.5; c.strokeStyle = theme.mito; c.stroke();
+    txt(c, p, x + w / 2, E.y, i === 4 ? 11.5 : 12, 700, theme.ink);
+  });
+  txt(c, '내막 · 전자 전달계', E.x0 - 12, E.y, 11.5, 700, theme.mito, 'right');
+  // TCA 고리
+  c.beginPath(); c.arc(RING.x, RING.y, RING.r, 0, Math.PI * 2);
+  c.setLineDash([7, 7]); c.strokeStyle = theme.mito; c.globalAlpha = 0.45; c.lineWidth = 2.5; c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  // 시계 방향 화살표
+  for (let i = 0; i < 6; i++) {
+    const a = -Math.PI / 2 + (i + 0.5) * Math.PI / 3;
+    const x = RING.x + RING.r * Math.cos(a), y = RING.y + RING.r * Math.sin(a);
+    c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2);
+    c.beginPath(); c.moveTo(-7, -6); c.lineTo(3, 0); c.lineTo(-7, 6); c.strokeStyle = theme.mito; c.lineWidth = 2.5; c.globalAlpha = 0.6; c.stroke(); c.restore();
   }
-  c.restore();
-  c.fillStyle = theme.mito; c.font = `700 15px ${getComputedStyle(document.body).fontFamily}`; c.textAlign = 'center';
-  c.fillText('미토콘드리아', mt.x + mt.w / 2, mt.y - 12);
-  c.font = `500 12.5px ${getComputedStyle(document.body).fontFamily}`; c.fillStyle = theme.muted;
-  c.fillText('외막 · 막사이 공간 · 내막 · 기질', mt.x + mt.w / 2, mt.y + mt.h + 22);
-  c.fillText('피루브산 산화 · TCA 회로 · 전자전달계는', mt.x + mt.w / 2, mt.y + 64); c.fillText('3·4단계에서 이어져요', mt.x + mt.w / 2, mt.y + 82);
-  // 경로 화살표
-  c.strokeStyle = theme['station-line']; c.globalAlpha = 0.35; c.lineWidth = 2; c.setLineDash([6, 6]);
-  for (const [a, b] of L.flow) {
-    const A = L.sites[a], B = L.sites[b];
-    c.beginPath(); c.moveTo(A.x, A.y); c.lineTo(B.x, B.y); c.stroke();
-  }
+  // 해당과정 → 피루브산 산화 경로
+  c.setLineDash([6, 6]); c.strokeStyle = theme['station-line']; c.globalAlpha = 0.35; c.lineWidth = 2;
+  const S = L.sites;
+  [['glyc1', 'glyc2'], ['glyc2', 'pdh']].forEach(([a, b]) => { c.beginPath(); c.moveTo(S[a].x, S[a].y); c.lineTo(S[b].x, S[b].y); c.stroke(); });
+  c.beginPath(); c.moveTo(S.pdh.x, S.pdh.y); c.quadraticCurveTo(S.cs.x - 90, S.pdh.y, S.cs.x - 70, S.cs.y - 48); c.stroke();
   c.setLineDash([]); c.globalAlpha = 1;
-  // 피루브산 대기 구역
-  const pk = L.park;
-  roundRect(c, pk.x - 62, pk.y - 36, pk.dx * pk.cols + 14, 190, 16);
-  c.setLineDash([4, 5]); c.strokeStyle = theme['station-line']; c.lineWidth = 1.2; c.stroke(); c.setLineDash([]);
-  c.fillStyle = theme.muted; c.textAlign = 'left'; c.fillText(pk.label, pk.x - 62, pk.y - 48);
   bgCache = off;
 }
 function drawStations(c) {
-  const font = getComputedStyle(document.body).fontFamily;
   for (const st of Object.values(W.stations)) {
-    const rx = Object.values(REACTIONS).find(r => r.site === st.id);
-    const active = st.busy;
-    c.save();
-    c.font = `700 13px ${font}`;
-    const label = `${rx.step}  ${rx.short}`;
-    const w = c.measureText(label).width + 20;
-    roundRect(c, st.x - w / 2, st.y + 40, w, 24, 12);
+    const rx = SITE_RX[st.id], active = st.busy;
+    c.beginPath(); c.arc(st.x, st.y, 26, 0, Math.PI * 2);
+    c.setLineDash([3, 4]); c.strokeStyle = active ? theme.mito : theme['station-line']; c.globalAlpha = active ? 0.9 : 0.35; c.lineWidth = 1.5; c.stroke();
+    c.setLineDash([]); c.globalAlpha = 1;
+    // 이름표: 고리 위 자리는 고리 안쪽, 나머지는 아래
+    let lx = st.x, ly = st.y + (st.labelDy || 46);
+    if (st.ring) { lx = st.x + st.radial[0] * 82; ly = st.y + st.radial[1] * 56; if (st.id === 'cs') { lx = st.x + 100; ly = st.y - 28; } }
+    c.font = `700 12.5px ${FONT}`;
+    const w = c.measureText(rx.short).width + 18;
+    rr(c, lx - w / 2, ly - 11, w, 22, 11);
     c.fillStyle = active ? theme.mito : theme.station; c.fill();
     c.lineWidth = 1.2; c.strokeStyle = active ? theme.mito : theme['station-line']; c.stroke();
-    c.fillStyle = active ? '#fff' : theme.ink; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(label, st.x, st.y + 52.5);
-    // 효소 자리 표시
-    c.beginPath(); c.arc(st.x, st.y, 30, 0, Math.PI * 2);
-    c.setLineDash([3, 4]); c.strokeStyle = active ? theme.mito : theme['station-line']; c.globalAlpha = active ? 0.9 : 0.35; c.stroke();
-    c.setLineDash([]); c.globalAlpha = 1;
-    if (st.wait) { c.fillStyle = theme.warn; c.font = `700 11px ${font}`; c.fillText(st.wait, st.x, st.y + 78); }
-    c.restore();
+    txt(c, rx.short, lx, ly + 0.5, 12.5, 700, active ? '#fff' : theme.ink);
+    if (rx.gain) txt(c, rx.gain, lx, ly + 20, 11, 700, theme.accent);
+    if (st.wait) txt(c, st.wait, lx, ly + (rx.gain ? 37 : 22), 11.5, 700, theme.warn);
   }
+  txt(c, 'TCA 회로', RING.x, RING.y - 8, 17, 800, theme.mito);
+  txt(c, `${W.turns}바퀴`, RING.x, RING.y + 14, 13, 600, theme.muted);
 }
-function line(c, a, b, order, alpha, shrinkA = R_ATOM, shrinkB = R_ATOM) {
-  const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
-  const ux = dx / d, uy = dy / d;
-  const x0 = a.x + ux * shrinkA, y0 = a.y + uy * shrinkA, x1 = b.x - ux * shrinkB, y1 = b.y - uy * shrinkB;
+function line(c, a, b, order, alpha, sa = R_ATOM, sb = R_ATOM) {
+  if (alpha <= 0.01) return;
+  const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+  const x0 = a.x + ux * sa, y0 = a.y + uy * sa, x1 = b.x - ux * sb, y1 = b.y - uy * sb;
   c.globalAlpha = alpha;
-  if (order === 2) {
-    const nx = -uy * 2.6, ny = ux * 2.6;
-    c.beginPath(); c.moveTo(x0 + nx, y0 + ny); c.lineTo(x1 + nx, y1 + ny); c.moveTo(x0 - nx, y0 - ny); c.lineTo(x1 - nx, y1 - ny); c.stroke();
-  } else { c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); }
-  c.globalAlpha = 1;
+  c.beginPath();
+  if (order === 2) { const nx = -uy * 2.6, ny = ux * 2.6; c.moveTo(x0 + nx, y0 + ny); c.lineTo(x1 + nx, y1 + ny); c.moveTo(x0 - nx, y0 - ny); c.lineTo(x1 - nx, y1 - ny); }
+  else { c.moveTo(x0, y0); c.lineTo(x1, y1); }
+  c.stroke(); c.globalAlpha = 1;
 }
 function drawDecos(c, m, alpha) {
   if (alpha <= 0.01) return;
-  const sp = SPECIES[m.sp];
-  const font = getComputedStyle(document.body).fontFamily;
-  for (const d of sp.deco) {
-    const a = m.atoms[d.at];
-    const p = { x: a.x + d.d[0] * BOND, y: a.y + d.d[1] * BOND };
+  for (const d of SPECIES[m.sp].deco) {
+    const a = m.atoms[d.at], p = { x: a.x + d.d[0] * BOND, y: a.y + d.d[1] * BOND };
+    const r = d.style === 'phos' ? 8 : d.style === 'tag' ? 15 : 7;
     c.strokeStyle = theme.bond; c.lineWidth = 1.6;
-    const r = d.style === 'phos' ? 8 : 7;
     if (d.bond) line(c, a, p, d.bond, alpha * 0.85, R_ATOM, r);
-    (d.links || []).forEach(l => line(c, m.atoms[l], p, 1, alpha * 0.85, R_ATOM, r));
     c.globalAlpha = alpha;
-    if (d.style === 'phos') {
-      c.beginPath(); c.arc(p.x, p.y, 8, 0, Math.PI * 2); c.fillStyle = theme.phos; c.fill();
-      c.fillStyle = '#fff'; c.font = `700 9.5px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('P', p.x, p.y + 0.5);
-    } else {
-      c.fillStyle = theme.ink; c.font = `600 12px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(d.t, p.x, p.y);
-    }
+    if (d.style === 'phos') { c.beginPath(); c.arc(p.x, p.y, 8, 0, Math.PI * 2); c.fillStyle = theme.phos; c.fill(); txt(c, 'P', p.x, p.y + 0.5, 10, 700, '#fff'); }
+    else if (d.style === 'tag') { rr(c, p.x - 15, p.y - 9, 30, 18, 5); c.fillStyle = theme['surface-2']; c.fill(); c.strokeStyle = theme['station-line']; c.lineWidth = 1; c.stroke(); txt(c, d.t, p.x, p.y + 0.5, 10.5, 700, theme.ink); }
+    else txt(c, d.t, p.x, p.y, 12, 600, theme.ink);
     c.globalAlpha = 1;
   }
 }
-function atomColor(a) { return ui.labels.has(a.pos) ? LABEL_COLORS[a.pos] : theme['gray-atom']; }
+const isLabeled = a => a.origin.kind === 'glc' && ui.labels.has(a.pos);
+function atomColor(a) { return isLabeled(a) ? LABEL_COLORS[a.pos] : theme['gray-atom']; }
 function draw() {
   if (!bgCache) drawBackground();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(bgCache, 0, 0);
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  const font = getComputedStyle(document.body).fontFamily;
+  // 전자 전달계 반짝임
+  const ef = W.time - W.etcFlash;
+  if (ef < 0.6) { const E = LAYOUT.etc; ctx.globalAlpha = 0.35 * (1 - ef / 0.6); ctx.fillStyle = theme.mito; rr(ctx, E.x0 - 8, E.y - 18, E.x1 - E.x0 + 60, 36, 12); ctx.fill(); ctx.globalAlpha = 1; }
   drawStations(ctx);
-  // 사라지는 궤적
   for (const t of W.trails) drawTrail(ctx, t.pts, atomColor(t.atom), 0.75 * (1 - (W.time - t.t0) / 1.4));
   if (W.pinned && W.pinTrail.length > 1) drawTrail(ctx, W.pinTrail, atomColor(W.pinned), 0.9, 3);
-  // 결합과 작용기
   ctx.strokeStyle = theme.bond; ctx.lineWidth = 2;
   for (const m of W.mols) {
     if (m.state === 'forming') continue;
     bondsOf(m).forEach(b => line(ctx, b.a, b.b, b.o, 1));
     drawDecos(ctx, m, 1);
   }
+  const reactingAtoms = new Map();
   for (const tr of W.trs) {
     const k = Math.max(0, Math.min(1, (W.time - tr.t0 - T_FOCUS) / T_MOVE));
     ctx.strokeStyle = theme.bond; ctx.lineWidth = 2;
@@ -798,76 +877,69 @@ function draw() {
       if (b.kind === 'keep') line(ctx, b.a, b.b, k < 0.5 ? b.o : b.o2, 1);
       else if (b.kind === 'break') line(ctx, b.a, b.b, b.o, Math.max(0, 1 - k / 0.4));
       else line(ctx, b.a, b.b, b.o, Math.max(0, (k - 0.6) / 0.4));
-      if (b.kind === 'break' && k > 0 && k < 0.45) {   // 끊어지는 결합 표시
-        ctx.save(); ctx.strokeStyle = theme.warn; ctx.lineWidth = 2;
+      if (b.kind === 'break' && k > 0 && k < 0.45) {
         const mx = (b.a.x + b.b.x) / 2, my = (b.a.y + b.b.y) / 2;
-        ctx.globalAlpha = 1 - k / 0.45;
+        ctx.save(); ctx.strokeStyle = theme.warn; ctx.lineWidth = 2.2; ctx.globalAlpha = 1 - k / 0.45;
         ctx.beginPath(); ctx.moveTo(mx - 6, my - 6); ctx.lineTo(mx + 6, my + 6); ctx.stroke(); ctx.restore();
       }
     }
-    tr.reactants.forEach(m => drawDecos(ctx, m, Math.max(0, 1 - k / 0.45)));
+    tr.reactants.forEach(m => { drawDecos(ctx, m, Math.max(0, 1 - k / 0.45)); SPECIES[m.sp].carbons.forEach(c => reactingAtoms.set(m.atoms[c], tr)); });
     tr.products.forEach(m => drawDecos(ctx, m, Math.max(0, (k - 0.6) / 0.4)));
   }
-  // 탄소 원
-  const pulseT = W.time;
   for (const a of W.atoms) {
-    const col = atomColor(a);
-    const tr = W.trs.find(t => t.reactants.some(m => SPECIES[m.sp].carbons.some(c => m.atoms[c] === a)));
-    if (tr && W.time - tr.t0 < T_FOCUS) {   // 반응 직전 반짝임
+    const col = atomColor(a), lab = isLabeled(a);
+    const tr = reactingAtoms.get(a);
+    if (tr && W.time - tr.t0 < T_FOCUS) {
       const k = (W.time - tr.t0) / T_FOCUS;
       ctx.beginPath(); ctx.arc(a.x, a.y, R_ATOM + 3 + 8 * k, 0, Math.PI * 2);
-      ctx.strokeStyle = col === theme['gray-atom'] ? theme.muted : col; ctx.globalAlpha = 1 - k; ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = lab ? col : theme.muted; ctx.globalAlpha = 1 - k; ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1;
     }
-    const big = a.tr && (W.time - a.tr.start) / a.tr.dur > 0 ? 1 + 0.25 * Math.sin(Math.PI * Math.min(1, (W.time - a.tr.start) / a.tr.dur)) : 1;
+    const mk = a.tr ? (W.time - a.tr.start) / a.tr.dur : 0;
+    const big = mk > 0 && mk < 1 ? 1 + 0.25 * Math.sin(Math.PI * mk) : 1;
     ctx.beginPath(); ctx.arc(a.x, a.y, R_ATOM * big, 0, Math.PI * 2);
-    ctx.fillStyle = col; ctx.fill();
-    ctx.lineWidth = 1.5; ctx.strokeStyle = theme.bond; ctx.stroke();
-    const num = ui.numbering === 'origin' ? a.pos : a.cur.slice(1);
-    ctx.fillStyle = ui.labels.has(a.pos) ? LABEL_TEXT[a.pos] : theme.ink;
-    ctx.font = `700 ${11 * big}px ${font}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(num, a.x, a.y + 0.5);
+    ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = theme.bond; ctx.stroke();
+    const num = ui.numbering === 'origin' ? (a.pos || '') : a.cur.slice(1);
+    if (num !== '') txt(ctx, String(num), a.x, a.y + 0.5, 11 * big, 700, lab ? LABEL_TEXT[a.pos] : theme.ink);
     if (W.pinned === a) {
-      ctx.beginPath(); ctx.arc(a.x, a.y, R_ATOM + 5 + Math.sin(pulseT * 5) * 1.5, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.arc(a.x, a.y, R_ATOM + 5 + Math.sin(W.time * 5) * 1.5, 0, Math.PI * 2);
       ctx.strokeStyle = theme.ink; ctx.lineWidth = 2.5; ctx.stroke();
     }
   }
-  // 분자 이름
-  ctx.font = `700 13px ${font}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   for (const m of W.mols) {
-    const a = m.state === 'forming' ? Math.max(0, Math.min(1, (W.time - m.born - T_FOCUS - T_MOVE * 0.7) / (T_MOVE * 0.3))) : 1;
-    if (a <= 0) continue;
+    if (m.sp === 'CO2' && arrived(m) && m.x > LAYOUT.outside.x) continue;
+    const al = m.state === 'forming' ? Math.max(0, Math.min(1, (W.time - m.born - T_FOCUS - T_MOVE * 0.7) / (T_MOVE * 0.3))) : 1;
+    if (al <= 0) continue;
     const sp = SPECIES[m.sp];
-    ctx.globalAlpha = a; ctx.fillStyle = theme.muted;
-    ctx.fillText(sp.name, m.x, m.y + (sp.h / 2) * BOND + (sp.deco.some(d => d.d[1] > 0.5) ? 50 : 30));
+    ctx.globalAlpha = al;
+    txt(ctx, sp.name, m.x, m.y + sp.bottom * BOND + (sp.deco.some(d => d.d[1] > 0.4) ? 44 : 26), 12.5, 700, theme.muted);
     ctx.globalAlpha = 1;
   }
-  // 떠오르는 글자 (+ATP 등)
-  ctx.font = `800 15px ${font}`;
   for (const f of W.floats) {
     const k = (W.time - f.t0) / 1.6;
-    ctx.globalAlpha = 1 - k; ctx.fillStyle = f.good ? theme.accent : theme.warn;
-    ctx.fillText(f.text, f.x, f.y - k * 26);
+    ctx.globalAlpha = 1 - k;
+    txt(ctx, f.text, f.x, f.y - k * 26, f.small ? 12 : 14.5, 800, f.good ? theme.accent : theme.warn);
   }
   ctx.globalAlpha = 1;
 }
 function drawTrail(c, pts, color, alpha, width = 2.5) {
-  if (alpha <= 0) return;
+  if (alpha <= 0 || pts.length < 2) return;
   c.save(); c.globalAlpha = alpha; c.strokeStyle = color === theme['gray-atom'] ? theme.muted : color; c.lineWidth = width; c.lineCap = 'round'; c.lineJoin = 'round';
   c.beginPath(); c.moveTo(pts[0].x, pts[0].y); pts.forEach(p => c.lineTo(p.x, p.y)); c.stroke(); c.restore();
 }
 </script>
 
 <!-- ======================================================================
-     ui — 조작, 카운터, 누적표, 설명, 툴팁, 자가 검사
+     ui — 조작, 카운터, 누적표, CO₂ 출처, 설명, 툴팁, 자가 검사
      ====================================================================== -->
 <script>
 const CO_NAMES = { ATP: 'ATP', ADP: 'ADP', NAD: 'NAD⁺', NADH: 'NADH', FAD: 'FAD', FADH2: 'FADH₂', NADP: 'NADP⁺', NADPH: 'NADPH', H2O: 'H₂O', CO2: 'CO₂', O2: 'O₂' };
+const fmt = v => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 const COUNTERS = [
   ['ATP', 'ATP', '#c0392b', () => W.pools.ATP, 0, 'ATP'], ['ADP', 'ADP', '#d98880', () => W.pools.ADP, 0, 'ADP'],
   ['NADH', 'NADH', '#1f6fb2', () => W.pools.NADH, 0, 'NH'], ['NAD', 'NAD⁺', '#85a9cf', () => W.pools.NAD, 0, 'N⁺'],
-  ['FADH2', 'FADH₂', '#7d5bb5', () => W.pools.FADH2, 1, 'FH₂'], ['FAD', 'FAD', '#b3a1d6', () => W.pools.FAD, 1, 'F'],
+  ['FADH2', 'FADH₂', '#7d5bb5', () => W.pools.FADH2, 0, 'FH₂'], ['FAD', 'FAD', '#b3a1d6', () => W.pools.FAD, 0, 'F'],
   ['NADPH', 'NADPH', '#2c8a4b', () => W.pools.NADPH, 1, 'PH'], ['NADP', 'NADP⁺', '#8fc4a0', () => W.pools.NADP, 1, 'P⁺'],
-  ['CO2', 'CO₂', '#6b6b6b', () => W.cum.CO2, 1, 'CO₂'], ['O2', 'O₂', '#3fa7c9', () => W.cum.O2, 1, 'O₂'],
+  ['CO2', 'CO₂', '#6b6b6b', () => W.cum.CO2, 0, 'CO₂'], ['O2', 'O₂', '#3fa7c9', () => fmt(W.cum.O2), 0, 'O₂'],
   ['H2O', 'H₂O', '#4a90c2', () => W.cum.H2O, 0, 'H₂O'],
   ['GLC', '포도당', '#b8860b', () => W.mols.filter(m => m.sp === 'GLC').length, 0, 'C₆'],
   ['PYR', '피루브산', '#a0522d', () => W.mols.filter(m => m.sp === 'PYR').length, 0, 'C₃'],
@@ -875,38 +947,64 @@ const COUNTERS = [
 ];
 const ctrEls = {};
 function buildCounters() {
-  const box = document.getElementById('counters');
-  box.innerHTML = COUNTERS.map(([k, name, col, , off, ic]) => `<div class="ctr${off ? ' off' : ''}" id="ctr-${k}" style="--ic:${col}" title="${off ? '이후 단계에서 쓰여요' : name}"><span class="ic">${ic}</span><span class="nm">${name}</span><b>0</b></div>`).join('');
+  document.getElementById('counters').innerHTML = COUNTERS.map(([k, name, col, , off, ic]) =>
+    `<div class="ctr${off ? ' off' : ''}" id="ctr-${k}" style="--ic:${col}" title="${off ? '이후 단계에서 쓰여요' : name}"><span class="ic">${ic}</span><span class="nm">${name}</span><b>0</b></div>`).join('');
   COUNTERS.forEach(([k]) => { ctrEls[k] = document.getElementById('ctr-' + k); });
 }
 function updateCounters() {
-  COUNTERS.forEach(([k, , , get]) => { const v = get(); const b = ctrEls[k].lastElementChild; const s = String(v); if (b.textContent !== s) b.textContent = s; });
+  COUNTERS.forEach(([k, , , get]) => { const b = ctrEls[k].lastElementChild, s = String(get()); if (b.textContent !== s) b.textContent = s; });
 }
 function flashCounters(keys) {
   keys.forEach(k => { const el = ctrEls[k]; if (!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); });
 }
 
 function updateLedger() {
-  const g = W.stage.glycolysis, n = W.pyrOut / 2;
-  const per = v => (n > 0 ? (v / n).toFixed(n >= 1 && Number.isInteger(v / n) ? 0 : 1) : '–');
+  const S = W.stage, b = ATP_BASIS[ui.basis];
+  const per = (v, n) => (n > 0 ? fmt(Math.round(v / n * 10) / 10) : '–');
+  const g = S.glycolysis, p = S.pyrox, t = S.tca, o = S.oxphos;
+  const nG = g.n;
+  const oxRef = ui.basis === 'new' ? '약 28 (10×2.5 + 2×1.5)' : '약 34 (10×3 + 2×2)';
+  const totRef = ui.basis === 'new' ? '약 32' : '약 38';
+  const oxATP = (S.oxphos.NADH * b.NADH + S.oxphos.FADH2 * b.FADH2);
   const rows = [
-    `<tr><th>단계</th><th>ATP 소모</th><th>ATP 생성</th><th>NADH</th><th>FADH₂</th><th>CO₂</th><th>교과서 값</th></tr>`,
-    `<tr><td>해당과정 <span class="note">(포도당 ${n % 1 ? n.toFixed(1) : n}개분)</span></td><td>${per(g.ATPuse)}</td><td>${per(g.ATPmade)}</td><td>${per(g.NADH)}</td><td>0</td><td>0</td><td class="ref">ATP −2 +4, NADH 2</td></tr>`,
-    `<tr class="pending"><td>피루브산 산화</td><td colspan="5">3단계에서 연결</td><td class="ref">NADH 2, CO₂ 2</td></tr>`,
-    `<tr class="pending"><td>TCA 회로</td><td colspan="5">3단계에서 연결</td><td class="ref">NADH 6, FADH₂ 2, ATP 2, CO₂ 4</td></tr>`,
-    `<tr class="pending"><td>산화적 인산화</td><td colspan="5">4단계에서 연결</td><td class="ref">ATP 약 26~28</td></tr>`,
+    `<tr><th>단계</th><th>ATP 사용</th><th>ATP 생성</th><th>NADH</th><th>FADH₂</th><th>CO₂</th><th>교과서 값</th></tr>`,
+    `<tr><td>해당과정</td><td>${per(g.ATPuse, nG)}</td><td>${per(g.ATPmade, nG)}</td><td>${per(g.NADH, nG)}</td><td>0</td><td>0</td><td class="ref">ATP −2 +4, NADH 2</td></tr>`,
+    `<tr><td>피루브산 산화</td><td>0</td><td>0</td><td>${per(p.NADH, p.n)}</td><td>0</td><td>${per(p.CO2, p.n)}</td><td class="ref">NADH 2, CO₂ 2</td></tr>`,
+    `<tr><td>TCA 회로</td><td>0</td><td>${per(t.ATP, t.n)}</td><td>${per(t.NADH, t.n)}</td><td>${per(t.FADH2, t.n)}</td><td>${per(t.CO2, t.n)}</td><td class="ref">ATP 2, NADH 6, FADH₂ 2, CO₂ 4</td></tr>`,
+    `<tr><td>산화적 인산화</td><td>0</td><td>${nG ? fmt(Math.round(oxATP / nG * 10) / 10) : '–'}</td><td>−${per(o.NADH, nG)}</td><td>−${per(o.FADH2, nG)}</td><td>0</td><td class="ref">ATP ${oxRef}</td></tr>`,
+    `<tr><th>합계 (순 ATP)</th><th colspan="5" style="text-align:right">${nG ? fmt(Math.round(((g.ATPmade - g.ATPuse) / nG + (t.n ? t.ATP / t.n : 0) + oxATP / nG) * 10) / 10) : '–'}</th><th class="ref">${totRef}</th></tr>`,
+    `<tr><td colspan="7" class="note" style="text-align:left">해당과정을 마친 포도당 ${fmt(nG)}개 · 피루브산 산화 ${fmt(p.n)}개분 · TCA 회로 ${fmt(t.n)}개분 (2바퀴 = 포도당 1개)</td></tr>`,
   ];
   document.getElementById('ledger').innerHTML = rows.join('');
 }
+function originText(a) {
+  return a.origin.kind === 'glc' ? `포도당 #${a.origin.batch}의 C${a.pos}` : `원래 있던 옥살아세트산 #${a.origin.idx}`;
+}
+function fateText(f) {
+  if (!f) return '';
+  if (f.rx === 'pdh') return '피루브산 산화';
+  return `TCA ${f.rx === 'c6to5' ? '6C→5C' : '5C→4C'}${f.turn ? ` · 들어온 지 ${f.turn}바퀴째` : ''}`;
+}
+let fatesShown = -1;
+function updateFates() {
+  if (fatesShown === W.released.length) return;
+  fatesShown = W.released.length;
+  const rows = W.released.slice(0, 40).map(a => {
+    const lab = isLabeled(a);
+    return `<tr><td><span class="sw" style="--c:${lab ? LABEL_COLORS[a.pos] : 'var(--gray-atom)'};display:inline-block;vertical-align:-3px"></span> ${originText(a)}</td><td>${fateText(a.fate)}</td></tr>`;
+  });
+  document.getElementById('fates').innerHTML = `<tr><th>CO₂의 탄소</th><th>나간 단계</th></tr>` + (rows.join('') || `<tr><td colspan="2" class="note">아직 방출된 CO₂가 없어요</td></tr>`);
+}
 
 function buildExplain() {
+  const dl = rows => `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+  const order = ['glyc1', 'glyc2', 'pdh', 'cs', 'c6to5', 'c5to4', 'sdh', 'fum', 'mdh', 'etc'];
   document.getElementById('explain').innerHTML =
-    `<div class="ex"><h3>해당과정 한눈에</h3><dl><dt>장소</dt><dd>세포질 (산소 없이도 일어남)</dd><dt>전체</dt><dd>포도당(6C) → 피루브산(3C) 2분자</dd><dt>에너지</dt><dd>ATP 2개 투자, 4개 생성 → 순 2 ATP, NADH 2</dd><dt>탄소</dt><dd>탄소는 하나도 빠져나가지 않아요. 6개가 모두 피루브산 2개에 나뉘어 들어가요.</dd></dl></div>` +
-    Object.values(REACTIONS).map(rx => {
-      const e = EXPLAIN[rx.id];
-      return `<div class="ex" id="ex-${rx.id}"><h3><span class="n">${rx.step}</span>${rx.name}</h3><dl>
-        <dt>장소</dt><dd>${e.place}</dd><dt>반응</dt><dd>${e.eq}</dd><dt>효소</dt><dd>${rx.enzyme}</dd>
-        <dt>에너지</dt><dd>${e.energy}</dd><dt>탄소</dt><dd>${e.carbon}</dd></dl>
+    EXPLAIN_INTRO.map(x => `<div class="ex"><h3>${x.title}</h3>${dl(x.rows)}</div>`).join('') +
+    order.map((id, i) => {
+      const e = EXPLAIN[id], rx = REACTIONS[id];
+      const title = rx ? rx.name : '전자 전달계와 산화적 인산화';
+      return `<div class="ex" id="ex-${id}"><h3><span class="n">${i + 1}</span>${title}</h3>${dl([['장소', e.place], ['반응', e.eq], ['에너지', e.energy], ['탄소', e.carbon]])}
         ${e.more ? `<details><summary>더 알아보기</summary><p>${e.more}</p></details>` : ''}</div>`;
     }).join('');
 }
@@ -928,9 +1026,10 @@ ui.numbering = 'origin';
 function buildLabels() {
   document.getElementById('labels').innerHTML = [1, 2, 3, 4, 5, 6].map(i =>
     `<label class="lchk"><input type="checkbox" data-c="${i}" ${ui.labels.has(i) ? 'checked' : ''}><span class="sw" style="--c:${LABEL_COLORS[i]}"></span>C${i}</label>`).join('');
+  fatesShown = -1;
 }
 document.getElementById('labels').addEventListener('change', e => {
-  const c = +e.target.dataset.c; e.target.checked ? ui.labels.add(c) : ui.labels.delete(c);
+  const c = +e.target.dataset.c; e.target.checked ? ui.labels.add(c) : ui.labels.delete(c); fatesShown = -1;
 });
 document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
   ui.labels = new Set(b.dataset.preset ? b.dataset.preset.split(',').map(Number) : []);
@@ -939,36 +1038,35 @@ document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('clic
 document.getElementById('numbering').addEventListener('change', e => { ui.numbering = e.target.value; });
 
 /* 재생 조작 */
-function setPaused(p) {
-  ui.paused = p;
-  document.getElementById('btn-play').textContent = p ? '▶ 재생' : '⏸ 일시정지';
-}
+function setPaused(p) { ui.paused = p; document.getElementById('btn-play').textContent = p ? '▶ 재생' : '⏸ 일시정지'; }
 document.getElementById('btn-play').addEventListener('click', () => { W.stepGoal = null; setPaused(!ui.paused); });
-document.getElementById('btn-step').addEventListener('click', () => {
-  if (!W.mols.length && !W.trs.length) { toast('먼저 포도당을 넣어 주세요.'); return; }
-  W.stepGoal = W.done + 1; setPaused(false);
+document.getElementById('btn-step').addEventListener('click', () => { W.stepGoal = W.done + 1; setPaused(false); });
+document.getElementById('btn-reset').addEventListener('click', () => {
+  resetWorld(); updatePin(); fatesShown = -1; exActive = null;
+  document.querySelectorAll('.ex.active').forEach(e => e.classList.remove('active'));
+  addGlucose(); setPaused(false);
 });
-document.getElementById('btn-reset').addEventListener('click', () => { resetWorld(); updatePin(); exActive = null; document.querySelectorAll('.ex.active').forEach(e => e.classList.remove('active')); addGlucose(); setPaused(false); });
 const speedEl = document.getElementById('speed');
 speedEl.addEventListener('input', () => { ui.speed = SPEEDS[+speedEl.value]; document.getElementById('speed-v').textContent = ui.speed + '×'; });
 document.getElementById('btn-glc').addEventListener('click', () => { addGlucose(); if (ui.paused && W.stepGoal === null) toast('일시정지 중이에요. 재생을 누르면 들어와요.'); });
 document.getElementById('supply-on').addEventListener('change', e => { ui.supply = e.target.checked; });
 document.getElementById('supply-rate').addEventListener('input', e => { ui.supplyRate = +e.target.value; document.getElementById('supply-v').textContent = `10초에 ${ui.supplyRate}개`; });
 document.getElementById('atp-use').addEventListener('input', e => { ui.atpUse = e.target.value / 10; document.getElementById('atp-use-v').textContent = `${ui.atpUse.toFixed(1)}/초`; });
+document.getElementById('o2').addEventListener('input', e => { ui.o2 = +e.target.value; document.getElementById('o2-v').textContent = `${ui.o2}%`; });
+document.getElementById('basis').addEventListener('change', e => { ui.basis = e.target.value; });
 
-/* 상태 문구 */
 function updateStatus() {
   const el = document.getElementById('status');
-  const waits = Object.values(W.stations).filter(s => s.wait);
+  const waits = Object.values(W.stations).filter(s => s.wait && !s.wait.includes('기다리는'));
   if (waits.length) {
     const s = waits[0];
-    el.textContent = `${REACTIONS[NEXT[s.queue[0].sp]].enzyme}: ${s.wait} — ${s.wait.includes('NAD') ? 'NAD⁺를 다시 만드는 과정(3~5단계)이 아직 없어요' : 'ATP 사용 속도를 바꿔 보세요'}`;
+    el.textContent = `${SITE_RX[s.id].short}: ${s.wait}${s.wait.includes('NAD') ? (ui.o2 === 0 ? ' — O₂가 없어 전자 전달계가 NADH를 NAD⁺로 되돌리지 못해요' : ' — 전자 전달계가 NADH를 처리하는 중이에요') : s.wait.includes('ADP') ? ' — 세포의 ATP 사용을 늘려 보세요' : ''}`;
     el.className = 'status warn';
   } else if (ui.paused) { el.textContent = '일시정지'; el.className = 'status'; }
-  else if (W.lastRx) { const rx = REACTIONS[W.lastRx]; el.textContent = `${rx.step}. ${rx.name} (${rx.enzyme})`; el.className = 'status'; }
+  else if (W.lastRx) { const rx = REACTIONS[W.lastRx]; el.textContent = `${rx.short}: ${rx.name}`; el.className = 'status'; }
 }
 
-/* 툴팁 · 탄소 고정 추적 */
+/* 툴팁 · 탄소 따라가기 */
 const tip = document.getElementById('tip');
 function atomAt(ev) {
   const r = canvas.getBoundingClientRect();
@@ -978,8 +1076,10 @@ function atomAt(ev) {
   return best;
 }
 function atomInfo(a) {
-  const path = a.hist.map(h => `${SPECIES[h.sp].name}(${h.c})`).join(' → ');
-  return `<b>포도당 #${a.batch}의 C${a.pos}</b><br>지금: ${SPECIES[a.mol.sp].name}의 ${a.cur}<br>경로: ${path}`;
+  const names = [];
+  a.hist.forEach(h => { const n = SPECIES[h.sp].full ? `${SPECIES[h.sp].name}(${SPECIES[h.sp].full})` : SPECIES[h.sp].name; if (names[names.length - 1] !== n) names.push(n); });
+  const sp = SPECIES[a.mol.sp];
+  return `<b>${originText(a)}</b><br>지금: ${sp.name}${sp.full ? `(${sp.full})` : ''}의 ${a.cur}${a.fate ? ` · ${fateText(a.fate)}에서 CO₂로 방출` : ''}${a.turn && !a.fate ? ` · TCA ${a.turn}바퀴째` : ''}<br>경로: ${names.join(' → ')}`;
 }
 canvas.addEventListener('pointermove', ev => {
   const a = atomAt(ev);
@@ -996,59 +1096,71 @@ canvas.addEventListener('click', ev => {
   W.pinTrail = [];
   updatePin();
 });
-let pinShown = undefined;
+let pinShown;
 function updatePin() {
   const box = document.getElementById('pinbox');
   if (pinShown !== W.pinned) {
     pinShown = W.pinned;
     if (!W.pinned) { box.textContent = '탄소를 누르면 그 탄소만 따라가며 지나온 길을 보여줘요. 마우스를 올리면 정보가 나와요.'; return; }
-    box.innerHTML = '추적 중: <span id="pintext"></span> <button class="btn small" id="unpin">추적 끝</button>';
+    box.innerHTML = '따라가는 중: <span id="pintext"></span> <button class="btn small" id="unpin">그만 따라가기</button>';
     document.getElementById('unpin').onclick = () => { W.pinned = null; W.pinTrail = []; updatePin(); };
   }
   if (W.pinned) document.getElementById('pintext').innerHTML = atomInfo(W.pinned).replace(/<br>/g, ' · ');
 }
-
 function toast(msg) {
   const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false;
   clearTimeout(toast.h); toast.h = setTimeout(() => { t.hidden = true; }, 3200);
 }
 
-/* ---------- 자가 검사: 매핑 · 탄소 위치 · 화학량론 ---------- */
+/* ---------- 자가 검사 ---------- */
 function selfTest() {
-  const results = [];
+  const R = [];
   const errs = Object.values(REACTIONS).flatMap(rx => validateReaction(rx).map(e => `${rx.id}: ${e}`));
-  results.push({ ok: !errs.length, text: `반응 ${Object.keys(REACTIONS).length}개의 탄소 매핑이 빠짐없고 중복 없음`, detail: errs.join('; ') });
-  // 포도당 C1~C6가 어느 피루브산의 몇 번 탄소가 되는가
-  const tag = i => ({ tag: i });
-  const run = (id, m) => ({ atoms: applyMapping(REACTIONS[id], { [REACTIONS[id].in[0]]: m })[REACTIONS[id].out[0]] });
-  let m = { atoms: Object.fromEntries([1, 2, 3, 4, 5, 6].map(i => ['C' + i, tag(i)])) };
-  m = run('hk', m); m = run('pgi', m); m = run('pfk', m);
-  const split = applyMapping(REACTIONS.aldolase, { F16BP: m });
-  const g3pA = run('tpi', { atoms: split.DHAP }), g3pB = { atoms: split.G3P };
-  const toPyr = g => ['gapdh', 'pgk', 'pgm', 'eno', 'pk'].reduce((x, id) => run(id, x), g);
-  const pyrs = [toPyr(g3pA), toPyr(g3pB)];
+  R.push({ ok: !errs.length, text: `반응 ${Object.keys(REACTIONS).length}개의 탄소 매핑이 빠짐없고 중복 없음`, detail: errs.join('; ') });
+  const one = (id, slot, m) => applyMapping(REACTIONS[id], { [slot]: m });
+  // 해당과정
+  const glc = { atoms: Object.fromEntries([1, 2, 3, 4, 5, 6].map(i => ['C' + i, { tag: i }])) };
+  const f = { atoms: one('glyc1', 'GLC', glc).F16BP };
+  const py = one('glyc2', 'F16BP', f);
   const where = {};
-  pyrs.forEach(p => Object.entries(p.atoms).forEach(([c, a]) => { where[a.tag] = c; }));
-  const expect = { 1: 'C3', 2: 'C2', 3: 'C1', 4: 'C1', 5: 'C2', 6: 'C3' };
-  const ok2 = Object.keys(expect).every(k => where[k] === expect[k]);
-  results.push({ ok: ok2, text: '피루브산 C1(카복실) ← 포도당 C3·C4, C2(카보닐) ← C2·C5, C3(메틸) ← C1·C6',
-    detail: Object.keys(expect).map(k => `C${k}→${where[k]}`).join(', ') });
-  const total = Object.keys(where).length;
-  results.push({ ok: total === 6, text: '탄소 6개가 모두 피루브산 2분자에 보존됨', detail: `${total}개` });
-  // 화학량론 (포도당 1분자 = 앞 5반응 1번 + 뒤 5반응 2번)
+  ['PYR#1', 'PYR#2'].forEach(s => Object.entries(py[s]).forEach(([c, a]) => { where[a.tag] = c; }));
+  const exp = { 1: 'C3', 2: 'C2', 3: 'C1', 4: 'C1', 5: 'C2', 6: 'C3' };
+  R.push({ ok: Object.keys(exp).every(k => where[k] === exp[k]), text: '피루브산 C1 ← 포도당 C3·C4, C2 ← C2·C5, C3 ← C1·C6', detail: Object.keys(exp).map(k => `C${k}→${where[k]}`).join(', ') });
+  // 피루브산 산화
+  const co2 = [py['PYR#1'], py['PYR#2']].map(p => one('pdh', 'PYR', { atoms: p }).CO2.C1.tag).sort().join(',');
+  R.push({ ok: co2 === '3,4', text: '피루브산 산화의 CO₂ = 포도당 C3, C4', detail: `C${co2.replace(',', ', C')}` });
+  // TCA: 아세틸 탄소가 몇 바퀴째에 CO₂로 나가는지 (몬테카를로)
+  const trials = 4000, dist = { carbonyl: {}, methyl: {} };
+  for (let i = 0; i < trials; i++) {
+    let oaa = { atoms: { C1: {}, C2: {}, C3: {}, C4: {} } };
+    for (let turn = 1; turn <= 12; turn++) {
+      const ac = turn === 1 ? { atoms: { C1: { tag: 'carbonyl' }, C2: { tag: 'methyl' } } } : { atoms: { C1: {}, C2: {} } };
+      const cit = applyMapping(REACTIONS.cs, { ACoA: ac, OAA: oaa }).CIT;
+      const r1 = applyMapping(REACTIONS.c6to5, { CIT: { atoms: cit } });
+      const r2 = applyMapping(REACTIONS.c5to4, { AKG: { atoms: r1.AKG } });
+      [r1.CO2.C1, r2.CO2.C1].forEach(a => { if (a.tag) dist[a.tag][turn] = (dist[a.tag][turn] || 0) + 1; });
+      let m = applyMapping(REACTIONS.sdh, { SUC: { atoms: r2.SUC } }).FUM;
+      m = applyMapping(REACTIONS.fum, { FUM: { atoms: m } }).MAL;
+      oaa = { atoms: applyMapping(REACTIONS.mdh, { MAL: { atoms: m } }).OAA };
+    }
+  }
+  const pct = (d, t) => Math.round(100 * (d[t] || 0) / trials);
+  const cb = dist.carbonyl, me = dist.methyl;
+  R.push({ ok: pct(cb, 1) === 0 && pct(cb, 2) === 100, text: '아세틸 CoA 카보닐 탄소(포도당 C2·C5): 1바퀴째 0%, 2바퀴째 100% CO₂',
+    detail: `1바퀴 ${pct(cb, 1)}%, 2바퀴 ${pct(cb, 2)}%` });
+  R.push({ ok: pct(me, 1) === 0 && pct(me, 2) === 0 && Math.abs(pct(me, 3) - 50) <= 4 && Math.abs(pct(me, 4) - 25) <= 4,
+    text: '아세틸 CoA 메틸 탄소(포도당 C1·C6): 1·2바퀴째 0%, 3바퀴째 약 50%, 4바퀴째 약 25%', detail: `${[1, 2, 3, 4, 5].map(t => `${t}바퀴 ${pct(me, t)}%`).join(', ')} (${trials}회 반복)` });
+  // 화학량론 (포도당 1분자 = 해당과정 1번 + 피루브산 산화 2번 + TCA 2바퀴)
   const sum = {};
-  const addCo = (id, n) => Object.entries(REACTIONS[id].co).forEach(([k, v]) => { sum[k] = (sum[k] || 0) + v * n; });
-  ['hk', 'pgi', 'pfk', 'aldolase', 'tpi'].forEach(id => addCo(id, 1));
-  ['gapdh', 'pgk', 'pgm', 'eno', 'pk'].forEach(id => addCo(id, 2));
-  const used = -(REACTIONS.hk.co.ATP + REACTIONS.pfk.co.ATP), made = 2 * (REACTIONS.pgk.co.ATP + REACTIONS.pk.co.ATP);
-  results.push({ ok: used === 2 && made === 4 && sum.ATP === 2 && sum.NADH === 2 && sum.H2O === 2,
-    text: '포도당 1분자: ATP 2 소모 · 4 생성(순 2), NADH 2, H₂O 2', detail: `ATP 소모 ${used}, 생성 ${made}, NADH ${sum.NADH}, H₂O ${sum.H2O}` });
-  return results;
+  const add = (id, n) => { Object.entries(REACTIONS[id].co).forEach(([k, v]) => { sum[k] = (sum[k] || 0) + v * n; }); };
+  add('glyc1', 1); add('glyc2', 1); add('pdh', 2); ['cs', 'c6to5', 'c5to4', 'sdh', 'fum', 'mdh'].forEach(id => add(id, 2));
+  const co2n = 2 * 1 + 2 * 2;
+  R.push({ ok: sum.ATP === 4 && sum.NADH === 10 && sum.FADH2 === 2 && co2n === 6, text: '포도당 1분자: 순 ATP 4(해당 2 + TCA 2), NADH 10, FADH₂ 2, CO₂ 6',
+    detail: `ATP ${sum.ATP}, NADH ${sum.NADH}, FADH₂ ${sum.FADH2}, CO₂ ${co2n}` });
+  return R;
 }
 function showSelfTest() {
-  const r = selfTest();
-  document.getElementById('selftest').innerHTML = r.map(x => `<li class="${x.ok ? 'pass' : 'fail'}">${x.text}${x.detail ? ` <span class="note">(${x.detail})</span>` : ''}</li>`).join('');
-  return r;
+  document.getElementById('selftest').innerHTML = selfTest().map(x => `<li class="${x.ok ? 'pass' : 'fail'}">${x.text}${x.detail ? ` <span class="note">(${x.detail})</span>` : ''}</li>`).join('');
 }
 window.selfTest = selfTest;
 
@@ -1060,7 +1172,7 @@ function loop(t) {
   if (dt > 0) step(dt);
   draw();
   uiAcc += rdt;
-  if (uiAcc > 0.1) { uiAcc = 0; updateCounters(); updateLedger(); updateStatus(); if (W.pinned) updatePin(); }
+  if (uiAcc > 0.1) { uiAcc = 0; updateCounters(); updateLedger(); updateStatus(); updateFates(); if (W.pinned) updatePin(); }
   requestAnimationFrame(loop);
 }
 readTheme();
